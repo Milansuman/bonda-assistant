@@ -292,3 +292,79 @@ body {
 .language-json .null {
   color: #d73a49;
 }
+
+/* Code Block Syntax Highlighting */
+.syntax-highlighted .keyword {
+  color: #569cd6;
+  font-weight: bold;
+}
+
+.syntax-highlighted .string {
+  color: #ce9178;
+}
+
+.syntax-highlighted .comment {
+  color: #6a9955;
+  font-style: italic;
+}
+
+.syntax-highlighted .number {
+  color: #b5cea8;
+}
+
+.syntax-highlighted .function {
+  color: #dcdcaa;
+}
+
+.syntax-highlighted .variable {
+  color: #9cdcfe;
+}
+
+.syntax-highlighted .operator {
+  color: #d4d4d4;
+}
+
+.syntax-highlighted .punctuation {
+  color: #d4d4d4;
+}
+
+.syntax-highlighted .builtin {
+  color: #4ec9b0;
+}
+
+.syntax-highlighted .decorator {
+  color: #ffd700;
+}
+
+.syntax-highlighted .tag {
+  color: #569cd6;
+}
+
+.syntax-highlighted .tag-name {
+  color: #569cd6;
+  font-weight: bold;
+}
+
+.syntax-highlighted .attribute {
+  color: #92c5f7;
+}
+
+.syntax-highlighted .selector {
+  color: #d7ba7d;
+}
+
+.syntax-highlighted .property {
+  color: #9cdcfe;
+}
+
+.syntax-highlighted .value {
+  color: #ce9178;
+}
+
+.syntax-highlighted .preprocessor {
+  color: #9b9b9b;
+}
+
+.syntax-highlighted .option {
+  color: #c586c0;
+}

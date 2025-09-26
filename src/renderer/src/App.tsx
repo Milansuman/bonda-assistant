@@ -337,9 +337,16 @@ export default function App() {
                   >
                     📝 Test Mixed Content
                   </button>
+                  <button
+                    onClick={() => sendPrompt('Here are code examples in different languages:\n\n**Python:**\n```python\n@decorator\ndef greet(name: str) -> str:\n    """Greet someone with their name."""\n    return f"Hello, {name}!"\n\n# Example usage\nif __name__ == "__main__":\n    print(greet("World"))\n```\n\n**JavaScript:**\n```javascript\nconst fetchData = async (url) => {\n  try {\n    const response = await fetch(url);\n    return await response.json();\n  } catch (error) {\n    console.error("Error:", error);\n  }\n};\n```\n\n**Java:**\n```java\npublic class HelloWorld {\n    public static void main(String[] args) {\n        System.out.println("Hello, World!");\n    }\n}\n```\n\n**HTML:**\n```html\n<!DOCTYPE html>\n<html>\n<head>\n    <title>My Page</title>\n</head>\n<body>\n    <h1 class="header">Welcome!</h1>\n</body>\n</html>\n```')}
+                    className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
+                  >
+                    💻 Test Code Blocks
+                  </button>
                 </div>
               </div>
             )}
+            
 
             {chatHistory.map((message) => (
               <div
