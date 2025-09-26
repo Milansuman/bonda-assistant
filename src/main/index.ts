@@ -2,6 +2,7 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { initializeBondaIPC } from './lib/ai/ipc'
 
 function createWindow(): void {
   // Create the browser window.
@@ -53,6 +54,9 @@ app.whenReady().then(() => {
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
+
+  // Initialize Bonda AI IPC handlers
+  initializeBondaIPC()
 
   createWindow()
 
