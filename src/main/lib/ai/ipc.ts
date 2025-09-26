@@ -11,7 +11,7 @@ export const IPC_CHANNELS = {
   BONDA_STREAM_END: 'bonda:stream:end',
   BONDA_STREAM_ERROR: 'bonda:stream:error',
   BONDA_GET_HISTORY: 'bonda:getHistory',
-  BONDA_CLEAR_HISTORY: 'bonda:clearHistory'
+  BONDA_CLEAR_HISTORY: 'bonda:clearHistory',
 } as const;
 
 /**

@@ -1,5 +1,5 @@
 import { groq } from "./client";
-import { Experimental_Agent as Agent, stepCountIs, StreamTextResult, tool, CoreMessage} from "ai";
+import { Experimental_Agent as Agent, stepCountIs, tool, CoreMessage} from "ai";
 import { z } from "zod";
 import { exec } from "child_process";
 import { promisify } from "util";
@@ -97,6 +97,7 @@ export const BondaAgent = new Agent({
         try {
           console.log(`Executing command: ${command}`);
           const { stdout, stderr } = await execAsync(command);
+          console.log(stdout);
           return { success: true, stdout, stderr };
         } catch (error) {
           console.error(`Command execution failed: ${error}`);
@@ -145,7 +146,7 @@ export async function processMessage(message: string, conversationId: string = '
   }
 }
 
-export async function processStreamMessage(message: string, conversationId: string = 'default'): Promise<StreamTextResult<any, any>> {
+export async function processStreamMessage(message: string, conversationId: string = 'default') {
   try {
     // Add user message to history
     const userMessage: ChatMessage = {
