@@ -14,6 +14,8 @@ export default function App() {
   const [currentResponse, setCurrentResponse] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const conversationId = 'default'
+  const [loading, setLoading] = useState(false)
+  const [showBurst, setShowBurst] = useState(false)
   const promptInputRef = useRef<HTMLInputElement | null>(null)
   const chatContainerRef = useRef<HTMLDivElement | null>(null)
 
@@ -54,11 +56,10 @@ export default function App() {
         console.log('Transcript data:', data) // Debug log
         if (promptInputRef.current && data.text) {
           promptInputRef.current.value = data.text
-          
-          promptInputRef.current.focus() 
+
+          promptInputRef.current.focus()
           sendPrompt(data.text)
           promptInputRef.current.value = ''
-          
         }
       } else {
         console.error('Failed to get transcript:', response.status)
@@ -125,7 +126,8 @@ export default function App() {
       timestamp: Date.now()
     }
     setChatHistory((prev) => [...prev, userMessage])
-
+    setLoading(true)
+    setShowBurst(true)
     setIsStreaming(true)
     setCurrentResponse('') // Clear current response
 
@@ -144,6 +146,9 @@ export default function App() {
         timestamp: Date.now()
       }
       setChatHistory((prev) => [...prev, errorMessage])
+    } finally {
+      setLoading(false)
+      setShowBurst(false)
     }
   }
 
@@ -161,7 +166,9 @@ export default function App() {
 
   return (
     <>
-      <div className="bonda-overlay"></div>
+      {loading && <div className="bonda-overlay"></div>}
+      {showBurst && <div className="bonda-overlay-burst"></div>}
+
       <div className="w-screen h-screen flex items-center justify-center bg-transparent">
         <div className="w-[600px] bg-[#0c0e10] border border-white/10 rounded-2xl shadow-xl backdrop-blur-lg text-gray-200">
           <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10">
