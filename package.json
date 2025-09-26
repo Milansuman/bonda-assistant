@@ -27,6 +27,7 @@
     "@tailwindcss/vite": "^4.1.13",
     "ai": "^5.0.54",
     "dotenv-cli": "^10.0.0",
+    "lucide-react": "^0.544.0",
     "tailwindcss": "^4.1.13"
   },
   "devDependencies": {
