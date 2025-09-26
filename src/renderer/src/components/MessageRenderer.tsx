@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { markdownLookBack } from "@llm-ui/markdown";
 import { useLLMOutput, type LLMOutputComponent } from "@llm-ui/react";
 import { jsonBlock, parseJson5 } from "@llm-ui/json";
+import { findCompleteCodeBlock, codeBlockLookBack, parseCompleteMarkdownCodeBlock } from "@llm-ui/code";
 import { MarkdownComponent } from "./markdown";
 import FolderSchema from "../utils/jsonSchema";
-import { Folder as FolderIcon, File } from "lucide-react";
+import { Folder as FolderIcon, File, Copy, Check } from "lucide-react";
 
 interface MessageRendererProps {
   content: string;
@@ -84,6 +85,91 @@ const FolderComponent: LLMOutputComponent = ({ blockMatch }) => {
   );
 };
 
+const highlightCode = (code: string, language: string): string => {
+  let highlighted = code;
+  
+  if (language === 'javascript' || language === 'typescript') {
+    // Keywords
+    highlighted = highlighted.replace(/(const|let|var|function|class|if|else|for|while|return|import|export|from|async|await|try|catch)\b/g, '<span class="keyword">$1</span>');
+    // Strings
+    highlighted = highlighted.replace(/(['"`])((?:\\.|(?!\1)[^\\])*)\1/g, '<span class="string">$1$2$1</span>');
+    // Comments
+    highlighted = highlighted.replace(/(\/\/.*$)/gm, '<span class="comment">$1</span>');
+    highlighted = highlighted.replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="comment">$1</span>');
+    // Numbers
+    highlighted = highlighted.replace(/\b(\d+\.?\d*)\b/g, '<span class="number">$1</span>');
+  } else if (language === 'python') {
+    // Keywords
+    highlighted = highlighted.replace(/(def|class|if|else|elif|for|while|return|import|from|try|except|with|as|lambda|yield)\b/g, '<span class="keyword">$1</span>');
+    // Strings
+    highlighted = highlighted.replace(/('''[\s\S]*?'''|"""[\s\S]*?"""|'[^']*'|"[^"]*")/g, '<span class="string">$1</span>');
+    // Comments
+    highlighted = highlighted.replace(/(#.*$)/gm, '<span class="comment">$1</span>');
+    // Numbers
+    highlighted = highlighted.replace(/\b(\d+\.?\d*)\b/g, '<span class="number">$1</span>');
+  }
+  
+  return highlighted;
+};
+
+// Code Component for syntax highlighting
+const CodeComponent: LLMOutputComponent = ({ blockMatch }) => {
+  // Extract and parse code content from the block match
+  const rawContent = String(blockMatch.outputRaw);
+  const parsed = parseCompleteMarkdownCodeBlock(rawContent);
+  
+  const language = parsed.language || 'text';
+  const code = parsed.code || rawContent;
+  
+  const [isCopied, setIsCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy code:', error);
+    }
+  };
+
+  const highlightedCode = language !== 'text' ? highlightCode(code, language) : code;
+  
+  return (
+    <div className="code-block-wrapper bg-gray-900 rounded-lg border border-gray-700 my-4">
+      <div className="px-4 py-2 bg-gray-800 rounded-t-lg border-b border-gray-700 flex justify-between items-center">
+        <span className="text-xs text-gray-400 font-mono uppercase">
+          {language}
+        </span>
+        <button
+          onClick={handleCopy}
+          className="flex items-center gap-1 px-2 py-1 text-xs text-gray-400 hover:text-gray-200 hover:bg-gray-700 rounded transition-colors"
+          title={isCopied ? 'Copied!' : 'Copy code'}
+        >
+          {isCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+          {isCopied ? 'Copied' : 'Copy'}
+        </button>
+      </div>
+      <div className="overflow-x-auto p-4 text-sm">
+        {language !== 'text' ? (
+          <pre>
+            <code 
+              className="text-gray-100 font-mono whitespace-pre syntax-highlighted"
+              dangerouslySetInnerHTML={{ __html: highlightedCode }}
+            />
+          </pre>
+        ) : (
+          <pre>
+            <code className="text-gray-100 font-mono whitespace-pre">
+              {code}
+            </code>
+          </pre>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export const MessageRenderer: React.FC<MessageRendererProps> = ({ content, isStreamFinished }) => {
   const { blockMatches } = useLLMOutput({
     llmOutput: content,
@@ -91,6 +177,12 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({ content, isStr
       {
         ...jsonBlock({ type: "folder" }),
         component: FolderComponent,
+      },
+      {
+        findCompleteMatch: findCompleteCodeBlock(),
+        findPartialMatch: findCompleteCodeBlock(),
+        lookBack: codeBlockLookBack(),
+        component: CodeComponent,
       },
     ],
     fallbackBlock: {
