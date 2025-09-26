@@ -190,6 +190,73 @@ export default function App() {
             ref={chatContainerRef}
             className="flex flex-col p-5 min-h-20 h-fit max-h-96 overflow-auto space-y-2"
           >
+            {chatHistory.length === 0 && !isStreaming && (
+              <div className="flex flex-col space-y-2">
+                <div className="flex flex-wrap gap-2 justify-center">
+                  <button
+                    onClick={() => sendPrompt("What's the current time and date?")}
+                    className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
+                  >
+                    📅 Current time & date
+                  </button>
+                  <button
+                    onClick={() => sendPrompt("List the files in my current directory")}
+                    className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
+                  >
+                    📁 List current directory
+                  </button>
+                  <button
+                    onClick={() => sendPrompt("Check my system information")}
+                    className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
+                  >
+                    💻 System information
+                  </button>
+                  <button
+                    onClick={() => sendPrompt("What can you help me with?")}
+                    className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
+                  >
+                    ❓ What can you do?
+                  </button>
+                  <button
+                    onClick={() => sendPrompt("Check network connectivity")}
+                    className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
+                  >
+                    🌐 Check network
+                  </button>
+                  <button
+                    onClick={() => sendPrompt("Show running processes")}
+                    className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
+                  >
+                    ⚡ Running processes
+                  </button>
+                  <button
+                    onClick={() => sendPrompt("Check disk usage")}
+                    className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
+                  >
+                    💾 Disk usage
+                  </button>
+                  <button
+                    onClick={() => sendPrompt("Create a new file")}
+                    className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
+                  >
+                    📝 Create file
+                  </button>
+                  <button
+                    onClick={() => sendPrompt("Find files by name")}
+                    className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
+                  >
+                    🔍 Find files
+                  </button>
+                  <button
+                    onClick={() => sendPrompt("Open a website")}
+                    className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
+                  >
+                    🌍 Open website
+                  </button>
+                </div>
+              </div>
+            )}
+            
             {chatHistory.map((message) => (
               <div key={message.id} className={message.role === 'user' ? 'opacity-40' : 'opacity-100'}>
                 {message.role === 'assistant' ? (
