@@ -80,7 +80,30 @@ export const BondaAgent = new Agent({
   WINDOWS SPECIFIC GUIDELINES:
   1. Ensure windows commands are running using powershell.
   
-  `,
+RULES:
+1. Use this exact structure when returning folders or files:
+
+【
+{
+  "type": "folder",
+  "folder": [
+    {
+      "name": "file.txt",
+      "path": "/path/to/file.txt",
+      "type": "file",
+      "size": "1024",
+      "timestamp": "2025-09-26 10:30:00"
+    }
+  ]
+}
+】
+
+2. Every object must include: name, path, type, size, and timestamp.
+3. Do not remove or trim any symbols — the outer 【 】 must always be present.
+4. Include all files and subfolders as objects in the "folder" array.
+5. Only folders and files are allowed; do not include anything else.`,
+
+
   tools: {
     runCommand: tool({
       description: "Tool to execute commands in the terminal",

@@ -25,6 +25,7 @@
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
     "@llm-ui/code": "^0.13.3",
+    "@llm-ui/json": "^0.13.3",
     "@llm-ui/markdown": "^0.13.3",
     "@llm-ui/react": "^0.13.3",
     "@tailwindcss/vite": "^4.1.13",
@@ -35,7 +36,8 @@
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
     "shiki": "^1.29.2",
-    "tailwindcss": "^4.1.13"
+    "tailwindcss": "^4.1.13",
+    "zod": "^4.1.11"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",
