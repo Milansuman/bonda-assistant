@@ -6,3 +6,4 @@ out
 *.log*
 .venv
 .env
+__pycache__
