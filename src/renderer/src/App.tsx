@@ -1,4 +1,4 @@
-import {Mic, Play} from "lucide-react";
+import {Mic, Play, StopCircle} from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { MarkdownComponent } from "./components/markdown";
 
@@ -72,18 +72,29 @@ export default function App() {
               }}
             />
             <Mic color="#9ca3af" size={18} className="cursor-pointer hover:text-white" />
-            <Play 
-              color={isStreaming ? "#7cc3ff" : "#9ca3af"} 
-              size={18} 
-              className={`cursor-pointer hover:text-white ${isStreaming ? "animate-pulse" : ""}`}
-              onClick={() => {
-                if (promptInputRef.current?.value.trim()) {
-                  const prompt = promptInputRef.current.value;
-                  promptInputRef.current.value = "";
-                  sendPrompt(prompt);
-                }
-              }}
-            />
+            {isStreaming ? (
+              <StopCircle 
+                color="#ff6b6b" 
+                size={18} 
+                className="cursor-pointer hover:text-white"
+                onClick={() => {
+                  setIsStreaming(false);
+                }}
+              />
+            ) : (
+              <Play 
+                color="#9ca3af" 
+                size={18} 
+                className="cursor-pointer hover:text-white"
+                onClick={() => {
+                  if (promptInputRef.current?.value.trim()) {
+                    const prompt = promptInputRef.current.value;
+                    promptInputRef.current.value = "";
+                    sendPrompt(prompt);
+                  }
+                }}
+              />
+            )}
           </div>
           <div className="flex flex-col p-5 min-h-20 h-fit max-h-96 overflow-auto">
             {isStreaming && !response && (
