@@ -1,4 +1,6 @@
+import os
 import time
+from langchain_openai import ChatOpenAI
 import pyautogui
 import base64
 from io import BytesIO
@@ -6,11 +8,17 @@ from langchain_core.tools import tool
 from enum import Enum
 from typing import Any, Dict, Optional, TypedDict
 from langchain_core.runnables import RunnableConfig
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from instructions import GROUNDING_PROMPT
+from scaling import get_scaling_factor
 
 ACTION_DELAY = 0.1
 
 def move_mouse_to(x: int, y: int):
-    pyautogui.moveTo(x, y)
+    scaling_factor = get_scaling_factor(x, y)
+    corrected_x = x / scaling_factor
+    corrected_y = y / scaling_factor
+    pyautogui.moveTo(corrected_x, corrected_y)
     time.sleep(ACTION_DELAY)
 
 class KEYS(str, Enum):
@@ -28,17 +36,71 @@ class KEYS(str, Enum):
     PageDown = "PageDown"
 
 @tool
-def fetchScreen():
+def fetch_screen():
     """Get the current page screenshot.
     
     """
     screenshot = pyautogui.screenshot()
+    if screenshot.mode in ("RGBA", "LA") or screenshot.mode == "P":
+        screenshot = screenshot.convert("RGB")
     buffer = BytesIO()
-    screenshot.save(buffer, format="PNG")
+    screenshot.save(buffer, format="JPEG", quality=40, optimize=True)
     img_bytes = buffer.getvalue()
     img_base64 = base64.b64encode(img_bytes).decode('utf-8')
     print("Screen fetched")
-    return { "type:": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_base64}" } }
+    # return { "type:": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_base64}" } }
+    # return {
+    #     "type": "image",
+    #     "source_type": "base64",
+    #     "mime_type": "image/jpeg",
+    #     "data": img_base64
+    # }
+    return { "type": "screen", "data": img_base64, "text": "Screen fetched successfully" }
+
+@tool
+def get_coordinates(description: str):
+    """Get the coordinates of the specified element. ALWAYS fetch the screen before calling this tool.
+    
+    Args:
+        description: A brief description about the element to locate. Also pass your intention, like 'I want to click on it'.
+    
+    """
+    grounding_model = ChatOpenAI(
+        model="qwen/qwen2.5-vl-72b-instruct",
+        # model="bytedance/ui-tars-1.5-7b",
+        api_key=os.environ["OPENROUTER_API_KEY"],
+        base_url="https://openrouter.ai/api/v1",
+        extra_body={
+            "provider": {"only": ["hyperbolic"]}
+        }
+    )
+    messages = [SystemMessage(content=GROUNDING_PROMPT)]
+
+    screenshot = pyautogui.screenshot()
+    if screenshot.mode in ("RGBA", "LA") or screenshot.mode == "P":
+        screenshot = screenshot.convert("RGB")
+    buffer = BytesIO()
+    screenshot.save(buffer, format="JPEG", quality=40, optimize=True)
+    img_bytes = buffer.getvalue()
+    img_base64 = base64.b64encode(img_bytes).decode('utf-8')
+
+    messages.append(HumanMessage(
+        content=[
+            {
+                "type": "text",
+                "text": description
+            },
+            {
+                "type": "image",
+                "source_type": "base64",
+                "mime_type": "image/jpeg",
+                "data": img_base64
+            }
+        ]
+    ))
+    result = grounding_model.invoke(messages)
+    print("Grounding result: ", result)
+    return { "type": "text", "text": f"{result.content}" }
 
 @tool
 def click(x: int, y: int):
@@ -55,7 +117,7 @@ def click(x: int, y: int):
     return { "type": "text", "text": "Clicked successfully" }
 
 @tool
-def typeText(x: int, y: int, text: str):
+def type_text(x: int, y: int, text: str):
     """Type text into the specified field. Located by its x and y coordinates.
     
     Args:
@@ -83,21 +145,25 @@ def clearValue(x: int, y: int):
     move_mouse_to(x, y)
     pyautogui.click()
     time.sleep(ACTION_DELAY)
-    pyautogui.hotkey('ctrl', 'a')
+    if os.name == "posix":
+        pyautogui.hotkey('command', 'a')
+    else:
+        pyautogui.hotkey('ctrl', 'a')
     time.sleep(ACTION_DELAY)
     pyautogui.press('backspace')
     time.sleep(ACTION_DELAY)
     return { "type": "text", "text": "Value cleared successfully" }
 
 @tool
-def keyPress(key: KEYS):
+def key_press(key: KEYS):
     """Send key press to the page.
     
     Args:
         key: The key to press.
     
     """
-    pyautogui.press(key)
+    pyautogui.keyDown(key.value)
+    pyautogui.keyUp(key.value)
     time.sleep(ACTION_DELAY)
     return { "type": "text", "text": "Key pressed successfully" }
 
@@ -163,16 +229,14 @@ def message(text: str):
     return { "type": "text", "text": "Message printed successfully" }
 
 TOOLS = [
-    fetchScreen,
+    fetch_screen,
+    get_coordinates,
     click,
-    typeText,
+    type_text,
     clearValue,
-    keyPress,
+    key_press,
     scroll,
-    wait,
-    finish,
-    error,
-    message
+    wait
 ]
 
 class ToolCallRequest(TypedDict):
