@@ -16,6 +16,7 @@ interface BondaAPI {
   onStreamEnd: (callback: (fullResponse: string) => void) => void
   onStreamError: (callback: (error: string) => void) => void
   removeStreamListeners: () => void
+  abortConversation: (conversationId?: string) => Promise<{ success: boolean; error?: string }>
 }
 
 interface API {

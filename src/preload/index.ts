@@ -40,7 +40,11 @@ const api = {
       ipcRenderer.removeAllListeners('bonda:stream:chunk')
       ipcRenderer.removeAllListeners('bonda:stream:end')
       ipcRenderer.removeAllListeners('bonda:stream:error')
-    }
+    },
+
+    // Abort conversation
+    abortConversation: (conversationId?: string) => 
+      ipcRenderer.invoke('bonda:abort', conversationId)
   },
   
   // Hide window
