@@ -1,0 +1,91 @@
+import { groq } from "./client";
+import { Experimental_Agent as Agent, stepCountIs, StreamTextResult, tool } from "ai";
+import { z } from "zod";
+import { exec } from "child_process";
+import { promisify } from "util";
+import * as os from "node:os";
+
+const execAsync = promisify(exec);
+const mainModel = groq("moonshotai/kimi-k2-instruct");
+
+export const BondaAgent = new Agent({
+  model: mainModel,
+  system: `
+  You are a helpful AI assistant named Bonda. Your aim is to assist the user in any tasks they have.
+
+  You are on ${os.platform()} operating system.
+
+  GUIDELINES:
+  1. Only execute a shell command if it is necessary for the task at hand.
+  2. If you need information about the system in order to perform a task, use a shell command to obtain that information.
+  3. If there isn't a task to perform, respond directly to the prompt.
+  4. For tasks related to organizing files, follow the FILE ORGANIZATION GUIDELINES.
+  5. Do not reveal the inner workings of the tool calls under any circumstances.
+  6. For tasks that require google searches, find the installed browser and do the search there.
+
+  FILE ORGANIZATION GUIDELINES:
+  1. Always gather information about the relevant folder before performing the action.
+  2. If you can't find the relevant files/folder, use the find command(or equivalent command for the current OS) to find it.
+  3. Do not perform any actions without gathering information first, unless it is absolutely unecessary.
+
+  LINUX SPECIFIC GUIDELINES:
+  1. To find the list of applications, look at folders where .desktop files are usually stored.
+  2. Use xdg-open to open files whenever possible.
+  3. For commands that are likely to ask for prompts(yes/no questions), use the yes utility
+  4. For commands that require sudo access, use pkexec to ask for sudo access. <IMPORTANT>Never run a command with sudo directly.</IMPORTANT>
+
+  WINDOWS SPECIFIC GUIDELINES:
+  1. Ensure windows commands are running using powershell.
+  
+  `,
+  tools: {
+    runCommand: tool({
+      description: "Tool to execute commands in the terminal",
+      inputSchema: z.object({
+        command: z.string()
+      }),
+      execute: async ({ command }) => {
+        try {
+          console.log(`Executing command: ${command}`);
+          const { stdout, stderr } = await execAsync(command);
+          return { success: true, stdout, stderr };
+        } catch (error) {
+          console.error(`Command execution failed: ${error}`);
+          return { 
+            success: false, 
+            error: error instanceof Error ? error.message : String(error) 
+          };
+        }
+      }
+    })
+  },
+  stopWhen: stepCountIs(20)
+});
+
+export async function processMessage(message: string): Promise<string> {
+  try {
+    const result = await BondaAgent.generate({
+      prompt: message
+    });
+
+    return result.text;
+  } catch (error) {
+    console.error('AI processing error:', error);
+    throw error;
+  }
+}
+
+// Note: Streaming may need to be implemented differently based on the AI SDK version
+// For now, we'll use the basic generate method
+export async function processStreamMessage(message: string): Promise<StreamTextResult<any, any>> {
+  try {
+    const result = BondaAgent.stream({
+      prompt: message
+    });
+
+    return result;
+  } catch (error) {
+    console.error('AI processing error:', error);
+    throw error;
+  }
+}
