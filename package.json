@@ -27,15 +27,21 @@
     "@llm-ui/code": "^0.13.3",
     "@llm-ui/markdown": "^0.13.3",
     "@llm-ui/react": "^0.13.3",
+    "@modelcontextprotocol/sdk": "^1.18.2",
     "@tailwindcss/vite": "^4.1.13",
+    "@types/ws": "^8.18.1",
     "ai": "^5.0.54",
     "dotenv-cli": "^10.0.0",
+    "express": "^5.1.0",
     "html-react-parser": "^5.2.6",
     "lucide-react": "^0.544.0",
+    "puppeteer": "^24.22.3",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
     "shiki": "^1.29.2",
-    "tailwindcss": "^4.1.13"
+    "tailwindcss": "^4.1.13",
+    "twilio": "^5.10.1",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",

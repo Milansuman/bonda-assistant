@@ -1,5 +1,5 @@
 import { groq } from "./client";
-import { Experimental_Agent as Agent, stepCountIs, StreamTextResult, tool, CoreMessage } from "ai";
+import { Experimental_Agent as Agent, stepCountIs, StreamTextResult, tool, CoreMessage} from "ai";
 import { z } from "zod";
 import { exec } from "child_process";
 import { promisify } from "util";
@@ -19,22 +19,22 @@ export interface ChatMessage {
 // Conversation state manager
 class ConversationManager {
   private conversations = new Map<string, ChatMessage[]>();
-  
+
   addMessage(conversationId: string, message: ChatMessage): void {
     if (!this.conversations.has(conversationId)) {
       this.conversations.set(conversationId, []);
     }
     this.conversations.get(conversationId)!.push(message);
   }
-  
+
   getHistory(conversationId: string): ChatMessage[] {
     return this.conversations.get(conversationId) || [];
   }
-  
+
   clearHistory(conversationId: string): void {
     this.conversations.delete(conversationId);
   }
-  
+
   // Convert chat messages to CoreMessage format for the AI
   toCoreMessages(conversationId: string): CoreMessage[] {
     const history = this.getHistory(conversationId);
@@ -81,6 +81,9 @@ export const BondaAgent = new Agent({
 
   WINDOWS SPECIFIC GUIDELINES:
   1. Ensure windows commands are running using powershell.
+
+  FORMATTING GUIDELINES:
+  1. Always format lists of files in the following json structure: {name: string, isFolder: boolean, timestamp: string}[]
   
   `,
   tools: {
@@ -96,9 +99,9 @@ export const BondaAgent = new Agent({
           return { success: true, stdout, stderr };
         } catch (error) {
           console.error(`Command execution failed: ${error}`);
-          return { 
-            success: false, 
-            error: error instanceof Error ? error.message : String(error) 
+          return {
+            success: false,
+            error: error instanceof Error ? error.message : String(error)
           };
         }
       }
@@ -117,10 +120,10 @@ export async function processMessage(message: string, conversationId: string = '
       timestamp: Date.now()
     };
     conversationManager.addMessage(conversationId, userMessage);
-    
+
     // Get conversation history
     const messages = conversationManager.toCoreMessages(conversationId);
-    
+
     const result = await BondaAgent.generate({
       messages: messages
     });
@@ -151,10 +154,10 @@ export async function processStreamMessage(message: string, conversationId: stri
       timestamp: Date.now()
     };
     conversationManager.addMessage(conversationId, userMessage);
-    
+
     // Get conversation history
     const messages = conversationManager.toCoreMessages(conversationId);
-    
+
     const result = BondaAgent.stream({
       messages: messages
     });
