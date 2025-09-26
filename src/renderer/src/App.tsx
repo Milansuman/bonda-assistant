@@ -366,6 +366,8 @@ export default function App() {
                 )}
               </div>
             )}
+
+            {/*isToolCall && show currently executing tool call here. */}
           </div>
         </div>
       </div>
