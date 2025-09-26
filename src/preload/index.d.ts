@@ -20,6 +20,7 @@ interface BondaAPI {
 
 interface API {
   bonda: BondaAPI
+  hideWindow: () => Promise<void>
 }
 
 declare global {
