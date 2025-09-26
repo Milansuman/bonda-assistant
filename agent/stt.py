@@ -1,10 +1,39 @@
 from RealtimeSTT import AudioToTextRecorder
 from fastapi import FastAPI
-
-app = FastAPI(title="Usage")
-
+from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 
 recorder: AudioToTextRecorder | None = None
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global recorder
+    recorder = AudioToTextRecorder(
+        model="large-v1",
+        device='cuda',
+        gpu_device_index=0,
+        compute_type='int8',
+    )
+    print("Initialized RealtimeSTT with optimized settings")
+    yield
+    print("Closed the ai")
+
+app = FastAPI(title="Usage", lifespan=lifespan)
+
+
+origins = [
+    "http://localhost:3000",   
+    "http://127.0.0.1:3000", 
+    "http://localhost:5173" 
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*'],  
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 def record():
     if recorder is None:
@@ -15,9 +44,3 @@ def record():
 @app.get("/callfortext")
 def callfortext():
     return {"text": record()}
-
-if __name__ == "__main__":
-    recorder = AudioToTextRecorder()
-
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
