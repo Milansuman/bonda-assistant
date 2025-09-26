@@ -80,7 +80,10 @@ export const BondaAgent = new Agent({
   WINDOWS SPECIFIC GUIDELINES:
   1. Ensure windows commands are running using powershell.
   
-  `,
+  FORMATTING GUIDELINES:
+  1. When returning folders or files, always format the response strictly to remove the triple backticks and also return only the response. response must be in json with this following correct structure as this without any trim with these all symbols:【{"type":"folder","folder":[{"name":"file.txt","path":"/path/to/file.txt","type":"file","size":"1024","timestamp":"2025-09-26 10:30:00"}]}】`,
+
+
   tools: {
     runCommand: tool({
       description: "Tool to execute commands in the terminal",
