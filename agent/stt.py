@@ -9,7 +9,7 @@ recorder: AudioToTextRecorder | None = None
 async def lifespan(app: FastAPI):
     global recorder
     recorder = AudioToTextRecorder(
-        model='tiny',
+        model="large-v1",
         device='cuda',
         gpu_device_index=0,
         compute_type='int8',

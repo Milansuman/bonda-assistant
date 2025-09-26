@@ -57,6 +57,8 @@ export default function App() {
           
           promptInputRef.current.focus() 
           sendPrompt(data.text)
+          promptInputRef.current.value = ''
+          
         }
       } else {
         console.error('Failed to get transcript:', response.status)
