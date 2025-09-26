@@ -1,135 +1,161 @@
-import {Mic, Play, StopCircle, PlusCircle} from "lucide-react";
-import { useRef, useState, useEffect } from "react";
-import { MarkdownComponent } from "./components/markdown";
+import { Mic, Play, StopCircle, PlusCircle } from 'lucide-react'
+import { useRef, useState, useEffect, use } from 'react'
+import { MarkdownComponent } from './components/markdown'
 
 interface ChatMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: number;
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: number
 }
 
 export default function App() {
-  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
-  const [currentResponse, setCurrentResponse] = useState("");
-  const [isStreaming, setIsStreaming] = useState(false);
-  const conversationId = "default";
-  const promptInputRef = useRef<HTMLInputElement | null>(null);
-  const chatContainerRef = useRef<HTMLDivElement | null>(null);
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([])
+  const [currentResponse, setCurrentResponse] = useState('')
+  const [isStreaming, setIsStreaming] = useState(false)
+  const conversationId = 'default'
+  const promptInputRef = useRef<HTMLInputElement | null>(null)
+  const chatContainerRef = useRef<HTMLDivElement | null>(null)
 
   // Load chat history on mount
   useEffect(() => {
     const loadHistory = async () => {
       try {
-        const result = await window.api.bonda.getChatHistory(conversationId);
+        const result = await window.api.bonda.getChatHistory(conversationId)
         if (result.success && result.history) {
-          setChatHistory(result.history);
+          setChatHistory(result.history)
         }
       } catch (error) {
-        console.error('Failed to load chat history:', error);
+        console.error('Failed to load chat history:', error)
       }
-    };
-    
-    loadHistory();
-  }, []);
+    }
+
+    loadHistory()
+  }, [])
 
   // Auto-scroll to bottom when new messages are added
   useEffect(() => {
     if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight
     }
-  }, [chatHistory, currentResponse]);
+  }, [chatHistory, currentResponse])
+
+  const getTranscript = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/callfortext', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        console.log('Transcript data:', data) // Debug log
+        if (promptInputRef.current && data.text) {
+          promptInputRef.current.value = data.text
+          
+          promptInputRef.current.focus() 
+          sendPrompt(data.text)
+        }
+      } else {
+        console.error('Failed to get transcript:', response.status)
+      }
+    } catch (error) {
+      console.error('Error fetching transcript:', error)
+    }
+  }
 
   // Set up streaming listeners
   useEffect(() => {
     const handleStreamChunk = (chunk: string) => {
-      setCurrentResponse(prev => prev + chunk);
-    };
+      setCurrentResponse((prev) => prev + chunk)
+    }
 
     const handleStreamEnd = async (_fullResponse: string) => {
-      setIsStreaming(false);
-      setCurrentResponse("");
-      
+      setIsStreaming(false)
+      setCurrentResponse('')
+
       // Reload chat history to get the complete conversation
       try {
-        const result = await window.api.bonda.getChatHistory(conversationId);
+        const result = await window.api.bonda.getChatHistory(conversationId)
         if (result.success && result.history) {
-          setChatHistory(result.history);
+          setChatHistory(result.history)
         }
       } catch (error) {
-        console.error('Failed to reload chat history:', error);
+        console.error('Failed to reload chat history:', error)
       }
-    };
+    }
 
     const handleStreamError = (error: string) => {
-      setIsStreaming(false);
-      setCurrentResponse("");
-      
+      setIsStreaming(false)
+      setCurrentResponse('')
+
       // Add error message to chat
       const errorMessage: ChatMessage = {
         id: `${Date.now()}-error`,
         role: 'assistant',
         content: `Error: ${error}`,
         timestamp: Date.now()
-      };
-      setChatHistory(prev => [...prev, errorMessage]);
-    };
+      }
+      setChatHistory((prev) => [...prev, errorMessage])
+    }
 
     // Set up listeners
-    window.api.bonda.onStreamChunk(handleStreamChunk);
-    window.api.bonda.onStreamEnd(handleStreamEnd);
-    window.api.bonda.onStreamError(handleStreamError);
+    window.api.bonda.onStreamChunk(handleStreamChunk)
+    window.api.bonda.onStreamEnd(handleStreamEnd)
+    window.api.bonda.onStreamError(handleStreamError)
 
     // Cleanup listeners on unmount
     return () => {
-      window.api.bonda.removeStreamListeners();
-    };
-  }, [conversationId]);
+      window.api.bonda.removeStreamListeners()
+    }
+  }, [conversationId])
 
   const sendPrompt = async (prompt: string) => {
-    if (!prompt.trim() || isStreaming) return;
-    
+    if (!prompt.trim() || isStreaming) return
+
     // Add user message to local state immediately
     const userMessage: ChatMessage = {
       id: `${Date.now()}-user`,
       role: 'user',
       content: prompt,
       timestamp: Date.now()
-    };
-    setChatHistory(prev => [...prev, userMessage]);
-    
-    setIsStreaming(true);
-    setCurrentResponse(""); // Clear current response
-    
+    }
+    setChatHistory((prev) => [...prev, userMessage])
+
+    setIsStreaming(true)
+    setCurrentResponse('') // Clear current response
+
     try {
       // Start streaming response
-      await window.api.bonda.sendStreamMessage(prompt, conversationId);
+      await window.api.bonda.sendStreamMessage(prompt, conversationId)
     } catch (error) {
-      setIsStreaming(false);
-      setCurrentResponse("");
-      
+      setIsStreaming(false)
+      setCurrentResponse('')
+
       // Add error message to chat
       const errorMessage: ChatMessage = {
         id: `${Date.now()}-error`,
         role: 'assistant',
         content: `Error: ${error instanceof Error ? error.message : String(error)}`,
         timestamp: Date.now()
-      };
-      setChatHistory(prev => [...prev, errorMessage]);
+      }
+      setChatHistory((prev) => [...prev, errorMessage])
     }
-  };
+  }
 
   const clearHistory = async () => {
     try {
-      const result = await window.api.bonda.clearChatHistory(conversationId);
+      const result = await window.api.bonda.clearChatHistory(conversationId)
       if (result.success) {
-        setChatHistory([]);
-        setCurrentResponse("");
+        setChatHistory([])
+        setCurrentResponse('')
       }
     } catch (error) {
-      console.error('Failed to clear chat history:', error);
+      console.error('Failed to clear chat history:', error)
     }
-  };
+  }
 
   return (
     <>
@@ -146,47 +172,52 @@ export default function App() {
               className="flex-1 bg-transparent outline-none text-sm placeholder-gray-400"
               disabled={isStreaming}
               onKeyDown={(event) => {
-                if(event.key === "Enter"){
-                  const prompt = event.currentTarget.value;
-                  if(promptInputRef.current) promptInputRef.current.value = "";
-                  sendPrompt(prompt);
+                if (event.key === 'Enter') {
+                  const prompt = event.currentTarget.value
+                  if (promptInputRef.current) promptInputRef.current.value = ''
+                  sendPrompt(prompt)
                 }
               }}
             />
-            <Mic color="#9ca3af" size={18} className="cursor-pointer hover:text-white" />
+            <Mic
+              color="#9ca3af"
+              size={18}
+              className="cursor-pointer hover:text-white"
+              onClick={getTranscript}
+            />
             <div title="Clear chat history">
-              <PlusCircle 
-                color="#9ca3af" 
-                size={18} 
-                className="cursor-pointer hover:text-white" 
+              <PlusCircle
+                color="#9ca3af"
+                size={18}
+                className="cursor-pointer hover:text-white"
                 onClick={clearHistory}
               />
             </div>
             {isStreaming ? (
-              <StopCircle 
-                color="#ff6b6b" 
-                size={18} 
+              <StopCircle
+                color="#ff6b6b"
+                size={18}
                 className="cursor-pointer hover:text-white"
                 onClick={() => {
-                  setIsStreaming(false);
+                  setIsStreaming(false)
                 }}
               />
             ) : (
-              <Play 
-                color="#9ca3af" 
-                size={18} 
+              <Play
+                color="#9ca3af"
+                size={18}
                 className="cursor-pointer hover:text-white"
                 onClick={() => {
                   if (promptInputRef.current?.value.trim()) {
-                    const prompt = promptInputRef.current.value;
-                    promptInputRef.current.value = "";
-                    sendPrompt(prompt);
+                    const prompt = promptInputRef.current.value
+                    promptInputRef.current.value = ''
+                    sendPrompt(prompt)
                   }
                 }}
               />
             )}
           </div>
-          <div 
+          <div
             ref={chatContainerRef}
             className="flex flex-col p-5 min-h-20 h-fit max-h-96 overflow-auto space-y-2"
           >
@@ -200,55 +231,55 @@ export default function App() {
                     📅 Current time & date
                   </button>
                   <button
-                    onClick={() => sendPrompt("List the files in my current directory")}
+                    onClick={() => sendPrompt('List the files in my current directory')}
                     className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
                   >
                     📁 List current directory
                   </button>
                   <button
-                    onClick={() => sendPrompt("Check my system information")}
+                    onClick={() => sendPrompt('Check my system information')}
                     className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
                   >
                     💻 System information
                   </button>
                   <button
-                    onClick={() => sendPrompt("What can you help me with?")}
+                    onClick={() => sendPrompt('What can you help me with?')}
                     className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
                   >
                     ❓ What can you do?
                   </button>
                   <button
-                    onClick={() => sendPrompt("Check network connectivity")}
+                    onClick={() => sendPrompt('Check network connectivity')}
                     className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
                   >
                     🌐 Check network
                   </button>
                   <button
-                    onClick={() => sendPrompt("Show running processes")}
+                    onClick={() => sendPrompt('Show running processes')}
                     className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
                   >
                     ⚡ Running processes
                   </button>
                   <button
-                    onClick={() => sendPrompt("Check disk usage")}
+                    onClick={() => sendPrompt('Check disk usage')}
                     className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
                   >
                     💾 Disk usage
                   </button>
                   <button
-                    onClick={() => sendPrompt("Create a new file")}
+                    onClick={() => sendPrompt('Create a new file')}
                     className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
                   >
                     📝 Create file
                   </button>
                   <button
-                    onClick={() => sendPrompt("Find files by name")}
+                    onClick={() => sendPrompt('Find files by name')}
                     className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
                   >
                     🔍 Find files
                   </button>
                   <button
-                    onClick={() => sendPrompt("Open a website")}
+                    onClick={() => sendPrompt('Open a website')}
                     className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
                   >
                     🌍 Open website
@@ -256,9 +287,12 @@ export default function App() {
                 </div>
               </div>
             )}
-            
+
             {chatHistory.map((message) => (
-              <div key={message.id} className={message.role === 'user' ? 'opacity-40' : 'opacity-100'}>
+              <div
+                key={message.id}
+                className={message.role === 'user' ? 'opacity-40' : 'opacity-100'}
+              >
                 {message.role === 'assistant' ? (
                   <div className="prose prose-invert prose-sm max-w-none">
                     <MarkdownComponent response={message.content} />
@@ -268,7 +302,7 @@ export default function App() {
                 )}
               </div>
             ))}
-            
+
             {isStreaming && (
               <div className="opacity-100">
                 {currentResponse ? (
@@ -277,9 +311,7 @@ export default function App() {
                     <div className="inline-block w-2 h-4 bg-gray-400 animate-pulse ml-1 align-baseline"></div>
                   </div>
                 ) : (
-                  <div className="text-gray-400 text-sm animate-pulse">
-                    Thinking...
-                  </div>
+                  <div className="text-gray-400 text-sm animate-pulse">Thinking...</div>
                 )}
               </div>
             )}
