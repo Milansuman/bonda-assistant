@@ -1,5 +1,5 @@
 
-import { Mic, Play, StopCircle, PlusCircle } from 'lucide-react'
+import { Mic, Play, StopCircle, PlusCircle, Podcast } from 'lucide-react'
 import { useRef, useState, useEffect } from 'react'
 import { MessageRenderer } from "./components/MessageRenderer";
 
@@ -20,7 +20,7 @@ export default function App() {
   const [showBurst, setShowBurst] = useState(false);
   const promptInputRef = useRef<HTMLInputElement | null>(null);
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
-
+  const [recording, setRecording] = useState(false);
 
   // Load chat history on mount
   useEffect(() => {
@@ -48,6 +48,7 @@ export default function App() {
 
   const getTranscript = async () => {
     try {
+      setRecording(true);
       const response = await fetch('http://127.0.0.1:8000/callfortext', {
         method: 'GET',
         headers: {
@@ -70,6 +71,8 @@ export default function App() {
       }
     } catch (error) {
       console.error('Error fetching transcript:', error)
+    }finally{
+      setRecording(false);
     }
   }
 
@@ -183,7 +186,7 @@ export default function App() {
             </span>
             <input
               ref={promptInputRef}
-              placeholder="Ask me anything!"
+              placeholder={recording ? "Listening..." : "Ask me anything!"}
               className="flex-1 bg-transparent outline-none text-sm placeholder-gray-400"
               disabled={isStreaming}
               onKeyDown={(event) => {
@@ -194,12 +197,17 @@ export default function App() {
                 }
               }}
             />
-            <Mic
+           { recording ? (
+              <Podcast
+                color="#ff6b6b" pointer-events-none size={18} />
+            ) : (
+               <Mic
               color="#9ca3af"
               size={18}
               className="cursor-pointer hover:text-white"
               onClick={getTranscript}
             />
+            )}
             <div title="Clear chat history">
               <PlusCircle
                 color="#9ca3af"
