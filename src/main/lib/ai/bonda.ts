@@ -86,7 +86,31 @@ export const BondaAgent = new Agent({
   FORMATTING GUIDELINES:
   1. Always format lists of files in the following json structure: {name: string, isFolder: boolean, timestamp: string}[]
   
-  `,
+RULES:
+1. Always respond **only with JSON**, no explanations, no markdown, no extra text.
+2. Use this exact structure when returning folders or files:
+
+【
+{
+  "type": "folder",
+  "folder": [
+    {
+      "name": "file.txt",
+      "path": "/path/to/file.txt",
+      "type": "file",
+      "size": "1024",
+      "timestamp": "2025-09-26 10:30:00"
+    }
+  ]
+}
+】
+
+3. Every object must include: name, path, type, size, and timestamp.
+4. Do not remove or trim any symbols — the outer 【 】 must always be present.
+5. Include all files and subfolders as objects in the "folder" array.
+6. Only folders and files are allowed; do not include anything else.`,
+
+
   tools: {
     runCommand: tool({
       description: "Tool to execute commands in the terminal",

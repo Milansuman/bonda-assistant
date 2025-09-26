@@ -1,6 +1,7 @@
-import { Mic, Play, StopCircle, PlusCircle } from 'lucide-react'
-import { useRef, useState, useEffect, use } from 'react'
-import { MarkdownComponent } from './components/markdown'
+
+import { Mic, Play, StopCircle, PlusCircle, Podcast } from 'lucide-react'
+import { useRef, useState, useEffect } from 'react'
+import { MessageRenderer } from "./components/MessageRenderer";
 
 interface ChatMessage {
   id: string
@@ -10,14 +11,16 @@ interface ChatMessage {
 }
 
 export default function App() {
-  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([])
-  const [currentResponse, setCurrentResponse] = useState('')
-  const [isStreaming, setIsStreaming] = useState(false)
-  const conversationId = 'default'
-  const [loading, setLoading] = useState(false)
-  const [showBurst, setShowBurst] = useState(false)
-  const promptInputRef = useRef<HTMLInputElement | null>(null)
-  const chatContainerRef = useRef<HTMLDivElement | null>(null)
+
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [currentResponse, setCurrentResponse] = useState("");
+  const [isStreaming, setIsStreaming] = useState(false);
+  const conversationId = "default";
+  const [loading, setLoading] = useState(false);
+  const [showBurst, setShowBurst] = useState(false);
+  const promptInputRef = useRef<HTMLInputElement | null>(null);
+  const chatContainerRef = useRef<HTMLDivElement | null>(null);
+  const [recording, setRecording] = useState(false);
 
   // Load chat history on mount
   useEffect(() => {
@@ -30,10 +33,11 @@ export default function App() {
       } catch (error) {
         console.error('Failed to load chat history:', error)
       }
-    }
 
-    loadHistory()
-  }, [])
+    };
+
+    loadHistory();
+  }, []);
 
   // Auto-scroll to bottom when new messages are added
   useEffect(() => {
@@ -44,6 +48,7 @@ export default function App() {
 
   const getTranscript = async () => {
     try {
+      setRecording(true);
       const response = await fetch('http://127.0.0.1:8000/callfortext', {
         method: 'GET',
         headers: {
@@ -66,6 +71,8 @@ export default function App() {
       }
     } catch (error) {
       console.error('Error fetching transcript:', error)
+    }finally{
+      setRecording(false);
     }
   }
 
@@ -116,14 +123,14 @@ export default function App() {
   }, [conversationId])
 
   const sendPrompt = async (prompt: string) => {
-    if (!prompt.trim() || isStreaming) return
-
+    if (!prompt.trim() || isStreaming) return;
     // Add user message to local state immediately
     const userMessage: ChatMessage = {
       id: `${Date.now()}-user`,
       role: 'user',
       content: prompt,
       timestamp: Date.now()
+
     }
     setChatHistory((prev) => [...prev, userMessage])
     setLoading(true)
@@ -135,6 +142,7 @@ export default function App() {
       // Start streaming response
       await window.api.bonda.sendStreamMessage(prompt, conversationId)
     } catch (error) {
+
       setIsStreaming(false)
       setCurrentResponse('')
 
@@ -144,13 +152,14 @@ export default function App() {
         role: 'assistant',
         content: `Error: ${error instanceof Error ? error.message : String(error)}`,
         timestamp: Date.now()
-      }
-      setChatHistory((prev) => [...prev, errorMessage])
+      };
+      setChatHistory(prev => [...prev, errorMessage]);
     } finally {
-      setLoading(false)
-      setShowBurst(false)
+      setLoading(false);
+      setShowBurst(false);
     }
-  }
+  };
+  
 
   const clearHistory = async () => {
     try {
@@ -177,23 +186,28 @@ export default function App() {
             </span>
             <input
               ref={promptInputRef}
-              placeholder="Ask me anything!"
+              placeholder={recording ? "Listening..." : "Ask me anything!"}
               className="flex-1 bg-transparent outline-none text-sm placeholder-gray-400"
               disabled={isStreaming}
               onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  const prompt = event.currentTarget.value
-                  if (promptInputRef.current) promptInputRef.current.value = ''
-                  sendPrompt(prompt)
+                if (event.key === "Enter") {
+                  const prompt = event.currentTarget.value;
+                  if (promptInputRef.current) promptInputRef.current.value = "";
+                  sendPrompt(prompt);
                 }
               }}
             />
-            <Mic
+           { recording ? (
+              <Podcast
+                color="#ff6b6b" pointer-events-none size={18} />
+            ) : (
+               <Mic
               color="#9ca3af"
               size={18}
               className="cursor-pointer hover:text-white"
               onClick={getTranscript}
             />
+            )}
             <div title="Clear chat history">
               <PlusCircle
                 color="#9ca3af"
@@ -240,6 +254,7 @@ export default function App() {
                     📅 Current time & date
                   </button>
                   <button
+
                     onClick={() => sendPrompt('List the files in my current directory')}
                     className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
                   >
@@ -293,6 +308,18 @@ export default function App() {
                   >
                     🌍 Open website
                   </button>
+                  <button
+                    onClick={() => sendPrompt('Here are the contents: 【{"type":"folder","folder":[{"name":"package.json","path":"/project/package.json","type":"file","size":"2048","timestamp":"2025-09-25 16:20:15"},{"name":"src","path":"/project/src","type":"directory","size":"4096","timestamp":"2025-09-26 10:30:00"},{"name":"README.md","path":"/project/README.md","type":"file","size":"1024","timestamp":"2025-09-24 14:45:30"}]}】')}
+                    className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
+                  >
+                    🧪 Test Folder JSON
+                  </button>
+                  <button
+                    onClick={() => sendPrompt('I found several files: 【{"type":"folder","folder":[{"name":"app.py","path":"/home/user/app.py","type":"file","size":"5432","timestamp":"2025-09-26 09:15:00"},{"name":"templates","path":"/home/user/templates","type":"directory","size":"4096","timestamp":"2025-09-25 18:30:00"}]}】\n\nThe **app.py** file appears to be the main application. Would you like me to help with anything specific?')}
+                    className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
+                  >
+                    📝 Test Mixed Content
+                  </button>
                 </div>
               </div>
             )}
@@ -303,9 +330,10 @@ export default function App() {
                 className={message.role === 'user' ? 'opacity-40' : 'opacity-100'}
               >
                 {message.role === 'assistant' ? (
-                  <div className="prose prose-invert prose-sm max-w-none">
-                    <MarkdownComponent response={message.content} />
-                  </div>
+                  <MessageRenderer 
+                    content={message.content} 
+                    isStreamFinished={true}
+                  />
                 ) : (
                   <div className="text-sm text-gray-200">{message.content}</div>
                 )}
@@ -315,8 +343,11 @@ export default function App() {
             {isStreaming && (
               <div className="opacity-100">
                 {currentResponse ? (
-                  <div className="prose prose-invert prose-sm max-w-none">
-                    <MarkdownComponent response={currentResponse} />
+                  <div className="relative">
+                    <MessageRenderer 
+                      content={currentResponse} 
+                      isStreamFinished={false}
+                    />
                     <div className="inline-block w-2 h-4 bg-gray-400 animate-pulse ml-1 align-baseline"></div>
                   </div>
                 ) : (
