@@ -81,8 +81,7 @@ export const BondaAgent = new Agent({
   1. Ensure windows commands are running using powershell.
   
 RULES:
-1. Always respond **only with JSON**, no explanations, no markdown, no extra text.
-2. Use this exact structure when returning folders or files:
+1. Use this exact structure when returning folders or files:
 
 【
 {
@@ -99,10 +98,10 @@ RULES:
 }
 】
 
-3. Every object must include: name, path, type, size, and timestamp.
-4. Do not remove or trim any symbols — the outer 【 】 must always be present.
-5. Include all files and subfolders as objects in the "folder" array.
-6. Only folders and files are allowed; do not include anything else.`,
+2. Every object must include: name, path, type, size, and timestamp.
+3. Do not remove or trim any symbols — the outer 【 】 must always be present.
+4. Include all files and subfolders as objects in the "folder" array.
+5. Only folders and files are allowed; do not include anything else.`,
 
 
   tools: {
