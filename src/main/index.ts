@@ -1,18 +1,22 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, Tray, Menu } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { initializeBondaIPC } from './lib/ai/ipc'
 
+let mainWindow: BrowserWindow
+let tray: Tray
+
 function createWindow(): void {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
     show: false,
     autoHideMenuBar: true,
     titleBarStyle: 'hidden',
     transparent: true,
+    
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -21,7 +25,8 @@ function createWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => {
-    mainWindow.show()
+    mainWindow.maximize()
+    mainWindow.focus()
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -36,6 +41,48 @@ function createWindow(): void {
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
+}
+
+function createTray(): void {
+  tray = new Tray(icon)
+  
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: 'Show',
+      click: () => {
+        mainWindow.maximize()
+        mainWindow.focus()
+      }
+    },
+    {
+      label: 'Hide',
+      click: () => {
+        mainWindow.hide()
+      }
+    },
+    {
+      type: 'separator'
+    },
+    {
+      label: 'Exit',
+      click: () => {
+        app.quit()
+      }
+    }
+  ])
+  
+  tray.setContextMenu(contextMenu)
+  tray.setToolTip('Bonda Assistant')
+  
+  // Double click to show/hide window
+  tray.on('double-click', () => {
+    if (mainWindow.isVisible()) {
+      mainWindow.hide()
+    } else {
+      mainWindow.show()
+      mainWindow.focus()
+    }
+  })
 }
 
 // This method will be called when Electron has finished
@@ -59,6 +106,7 @@ app.whenReady().then(() => {
   initializeBondaIPC()
 
   createWindow()
+  createTray()
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
@@ -72,9 +120,7 @@ app.whenReady().then(() => {
 // explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
-    app.quit()
+    // Don't quit the app, keep it running in system tray
+    return
   }
 })
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and require them here.
