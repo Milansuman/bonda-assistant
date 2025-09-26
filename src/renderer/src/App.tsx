@@ -21,6 +21,7 @@ export default function App() {
   const promptInputRef = useRef<HTMLInputElement | null>(null);
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
   const [recording, setRecording] = useState(false);
+  const contentDivRef = useRef<HTMLDivElement | null>(null);
 
   // Load chat history on mount
   useEffect(() => {
@@ -45,6 +46,21 @@ export default function App() {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight
     }
   }, [chatHistory, currentResponse])
+
+  // Handle clicks outside the content div to hide window
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (contentDivRef.current && !contentDivRef.current.contains(event.target as Node)) {
+        // Send message to main process to hide window
+        window.api?.hideWindow?.()
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   const getTranscript = async () => {
     try {
@@ -79,6 +95,7 @@ export default function App() {
   // Set up streaming listeners
   useEffect(() => {
     const handleStreamChunk = (chunk: string) => {
+      console.log(chunk);
       setCurrentResponse((prev) => prev + chunk)
     }
 
@@ -176,10 +193,10 @@ export default function App() {
   return (
     <>
       {loading && <div className="bonda-overlay"></div>}
-      {showBurst && <div className="bonda-overlay-burst"></div>}
+      {/* {showBurst && <div className="bonda-overlay-burst"></div>} */}
 
       <div className="w-screen h-screen flex items-center justify-center bg-transparent">
-        <div className="w-[600px] bg-[#0c0e10] border border-white/10 rounded-2xl shadow-xl backdrop-blur-lg text-gray-200">
+        <div ref={contentDivRef} className="w-[600px] bg-[#0c0e10] border border-white/10 rounded-2xl shadow-xl backdrop-blur-lg text-gray-200">
           <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10">
             <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-white/5 text-[#7cc3ff] text-sm font-bold">
               ⌘

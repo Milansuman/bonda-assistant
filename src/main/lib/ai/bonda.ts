@@ -1,5 +1,5 @@
 import { groq } from "./client";
-import { Experimental_Agent as Agent, stepCountIs, StreamTextResult, tool, CoreMessage } from "ai";
+import { Experimental_Agent as Agent, stepCountIs, tool, CoreMessage} from "ai";
 import { z } from "zod";
 import { exec } from "child_process";
 import { promisify } from "util";
@@ -19,22 +19,22 @@ export interface ChatMessage {
 // Conversation state manager
 class ConversationManager {
   private conversations = new Map<string, ChatMessage[]>();
-  
+
   addMessage(conversationId: string, message: ChatMessage): void {
     if (!this.conversations.has(conversationId)) {
       this.conversations.set(conversationId, []);
     }
     this.conversations.get(conversationId)!.push(message);
   }
-  
+
   getHistory(conversationId: string): ChatMessage[] {
     return this.conversations.get(conversationId) || [];
   }
-  
+
   clearHistory(conversationId: string): void {
     this.conversations.delete(conversationId);
   }
-  
+
   // Convert chat messages to CoreMessage format for the AI
   toCoreMessages(conversationId: string): CoreMessage[] {
     const history = this.getHistory(conversationId);
@@ -64,7 +64,8 @@ export const BondaAgent = new Agent({
   7. When the user asks you to let them know when you're done with a task, use the available notification utility to send a desktop notification.
   8. When you need to run a long running task, but don't need it's output for the next step, run it as a background process and use the available notification utility when the command is done.
   9. Always use shell commands for any mathematical calculation.
-  10. If another language prompt is given, translate to english and understand the prompt and then execute the function back in ENGLISH ONLY and also ONLY REPLY IN ENGLISH
+  10. The user is not used to technical jargon. Use natural, easy to understand language.
+  11. If another language prompt is given, translate to english and understand the prompt and then execute the function back in ENGLISH ONLY and also ONLY REPLY IN ENGLISH
 
   FILE ORGANIZATION GUIDELINES:
   1. Always gather information about the relevant folder before performing the action.
@@ -75,10 +76,15 @@ export const BondaAgent = new Agent({
   1. To find the list of applications, look at folders where .desktop files are usually stored.
   2. Use xdg-open to open files whenever possible.
   3. For commands that are likely to ask for prompts(yes/no questions), use the yes utility
-  4. For commands that require sudo access, use pkexec to ask for sudo access. <IMPORTANT>Never run a command with sudo directly.</IMPORTANT>
+  4. For commands that require sudo access, use pkexec to ask for sudo access.
+  <IMPORTANT>Never run a command with sudo directly.</IMPORTANT>
+  5. When you need perform a keypress, use xdotool to perform the keybinding.
 
   WINDOWS SPECIFIC GUIDELINES:
   1. Ensure windows commands are running using powershell.
+
+  FORMATTING GUIDELINES:
+  1. Always format lists of files in the following json structure: {name: string, isFolder: boolean, timestamp: string}[]
   
 RULES:
 1. Use this exact structure when returning folders or files:
@@ -114,12 +120,13 @@ RULES:
         try {
           console.log(`Executing command: ${command}`);
           const { stdout, stderr } = await execAsync(command);
+          console.log(stdout);
           return { success: true, stdout, stderr };
         } catch (error) {
           console.error(`Command execution failed: ${error}`);
-          return { 
-            success: false, 
-            error: error instanceof Error ? error.message : String(error) 
+          return {
+            success: false,
+            error: error instanceof Error ? error.message : String(error)
           };
         }
       }
@@ -138,10 +145,10 @@ export async function processMessage(message: string, conversationId: string = '
       timestamp: Date.now()
     };
     conversationManager.addMessage(conversationId, userMessage);
-    
+
     // Get conversation history
     const messages = conversationManager.toCoreMessages(conversationId);
-    
+
     const result = await BondaAgent.generate({
       messages: messages
     });
@@ -162,7 +169,7 @@ export async function processMessage(message: string, conversationId: string = '
   }
 }
 
-export async function processStreamMessage(message: string, conversationId: string = 'default'): Promise<StreamTextResult<any, any>> {
+export async function processStreamMessage(message: string, conversationId: string = 'default') {
   try {
     // Add user message to history
     const userMessage: ChatMessage = {
@@ -172,10 +179,10 @@ export async function processStreamMessage(message: string, conversationId: stri
       timestamp: Date.now()
     };
     conversationManager.addMessage(conversationId, userMessage);
-    
+
     // Get conversation history
     const messages = conversationManager.toCoreMessages(conversationId);
-    
+
     const result = BondaAgent.stream({
       messages: messages
     });
