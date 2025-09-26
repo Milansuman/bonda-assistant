@@ -41,7 +41,10 @@ const api = {
       ipcRenderer.removeAllListeners('bonda:stream:end')
       ipcRenderer.removeAllListeners('bonda:stream:error')
     }
-  }
+  },
+  
+  // Hide window
+  hideWindow: () => ipcRenderer.invoke('hideWindow')
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

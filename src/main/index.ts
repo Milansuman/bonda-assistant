@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, Tray, Menu } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, Tray, Menu, globalShortcut } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -34,7 +34,17 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
+  // Register Escape key to hide window
+  mainWindow.webContents.on('before-input-event', (_, input) => {
+    if (input.key === 'Escape') {
+      mainWindow.hide()
+    }
+  })
 
+  // Hide window when clicking outside the visible content
+  mainWindow.on('blur', () => {
+    mainWindow.hide()
+  })
 
   // HMR for renderer base on electron-vite cli.
   // Load the remote URL for development or the local html file for production.
@@ -104,8 +114,23 @@ app.whenReady().then(() => {
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
+  // Hide window handler
+  ipcMain.handle('hideWindow', () => {
+    mainWindow.hide()
+  })
+
   // Initialize Bonda AI IPC handlers
   initializeBondaIPC()
+
+  // Register global shortcuts
+  globalShortcut.register('Alt+B', () => {
+    if (mainWindow.isVisible()) {
+      mainWindow.hide()
+    } else {
+      mainWindow.show()
+      mainWindow.focus()
+    }
+  })
 
   createWindow()
   createTray()
@@ -125,4 +150,9 @@ app.on('window-all-closed', () => {
     // Don't quit the app, keep it running in system tray
     return
   }
+})
+
+// Clean up global shortcuts when app is quitting
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll()
 })
