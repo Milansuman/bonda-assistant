@@ -1,8 +1,38 @@
-import { contextBridge } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
 // Custom APIs for renderer
-const api = {}
+const api = {
+  bonda: {
+    // Send a message to Bonda AI and get a response
+    sendMessage: (message: string) => ipcRenderer.invoke('bonda:message', message),
+    
+    // Send a message to Bonda AI and get a streaming response
+    sendStreamMessage: (message: string) => ipcRenderer.invoke('bonda:stream', message),
+    
+    // Listen for streaming chunks
+    onStreamChunk: (callback: (chunk: string) => void) => {
+      ipcRenderer.on('bonda:stream:chunk', (_, chunk) => callback(chunk))
+    },
+    
+    // Listen for stream end
+    onStreamEnd: (callback: (fullResponse: string) => void) => {
+      ipcRenderer.on('bonda:stream:end', (_, response) => callback(response))
+    },
+    
+    // Listen for stream errors
+    onStreamError: (callback: (error: string) => void) => {
+      ipcRenderer.on('bonda:stream:error', (_, error) => callback(error))
+    },
+    
+    // Remove listeners
+    removeStreamListeners: () => {
+      ipcRenderer.removeAllListeners('bonda:stream:chunk')
+      ipcRenderer.removeAllListeners('bonda:stream:end')
+      ipcRenderer.removeAllListeners('bonda:stream:error')
+    }
+  }
+}
 
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise

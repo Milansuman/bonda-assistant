@@ -3,6 +3,8 @@
   "include": ["electron.vite.config.*", "src/main/**/*", "src/preload/**/*"],
   "compilerOptions": {
     "composite": true,
+    "moduleResolution": "nodenext",
+    "module": "node20",
     "types": ["electron-vite/node"]
   }
 }
