@@ -61,6 +61,9 @@ export const BondaAgent = new Agent({
   4. For tasks related to organizing files, follow the FILE ORGANIZATION GUIDELINES.
   5. Do not reveal the inner workings of the tool calls under any circumstances.
   6. For tasks that require google searches, find the installed browser and do the search there.
+  7. When the user asks you to let them know when you're done with a task, use the available notification utility to send a desktop notification.
+  8. When you need to run a long running task, but don't need it's output for the next step, run it as a background process and use the available notification utility when the command is done.
+  9. Always use shell commands for any mathematical calculation.
 
   FILE ORGANIZATION GUIDELINES:
   1. Always gather information about the relevant folder before performing the action.
