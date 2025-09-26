@@ -24,10 +24,17 @@
     "@ai-sdk/groq": "^2.0.22",
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
+    "@llm-ui/code": "^0.13.3",
+    "@llm-ui/markdown": "^0.13.3",
+    "@llm-ui/react": "^0.13.3",
     "@tailwindcss/vite": "^4.1.13",
     "ai": "^5.0.54",
     "dotenv-cli": "^10.0.0",
+    "html-react-parser": "^5.2.6",
     "lucide-react": "^0.544.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "shiki": "^1.29.2",
     "tailwindcss": "^4.1.13"
   },
   "devDependencies": {

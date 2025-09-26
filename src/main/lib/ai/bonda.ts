@@ -8,6 +8,8 @@ import * as os from "node:os";
 const execAsync = promisify(exec);
 const mainModel = groq("moonshotai/kimi-k2-instruct");
 
+console.log(os.platform());
+
 export const BondaAgent = new Agent({
   model: mainModel,
   system: `
