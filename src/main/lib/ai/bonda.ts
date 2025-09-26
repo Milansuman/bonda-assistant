@@ -1,5 +1,5 @@
 import { groq } from "./client";
-import { Experimental_Agent as Agent, stepCountIs, StreamTextResult, tool } from "ai";
+import { Experimental_Agent as Agent, stepCountIs, StreamTextResult, tool, CoreMessage } from "ai";
 import { z } from "zod";
 import { exec } from "child_process";
 import { promisify } from "util";
@@ -8,7 +8,44 @@ import * as os from "node:os";
 const execAsync = promisify(exec);
 const mainModel = groq("moonshotai/kimi-k2-instruct");
 
-console.log(os.platform());
+// Message history interface
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: number;
+}
+
+// Conversation state manager
+class ConversationManager {
+  private conversations = new Map<string, ChatMessage[]>();
+  
+  addMessage(conversationId: string, message: ChatMessage): void {
+    if (!this.conversations.has(conversationId)) {
+      this.conversations.set(conversationId, []);
+    }
+    this.conversations.get(conversationId)!.push(message);
+  }
+  
+  getHistory(conversationId: string): ChatMessage[] {
+    return this.conversations.get(conversationId) || [];
+  }
+  
+  clearHistory(conversationId: string): void {
+    this.conversations.delete(conversationId);
+  }
+  
+  // Convert chat messages to CoreMessage format for the AI
+  toCoreMessages(conversationId: string): CoreMessage[] {
+    const history = this.getHistory(conversationId);
+    return history.map(msg => ({
+      role: msg.role,
+      content: msg.content
+    }));
+  }
+}
+
+export const conversationManager = new ConversationManager();
 
 export const BondaAgent = new Agent({
   model: mainModel,
@@ -64,11 +101,32 @@ export const BondaAgent = new Agent({
   stopWhen: stepCountIs(20)
 });
 
-export async function processMessage(message: string): Promise<string> {
+export async function processMessage(message: string, conversationId: string = 'default'): Promise<string> {
   try {
+    // Add user message to history
+    const userMessage: ChatMessage = {
+      id: `${Date.now()}-user`,
+      role: 'user',
+      content: message,
+      timestamp: Date.now()
+    };
+    conversationManager.addMessage(conversationId, userMessage);
+    
+    // Get conversation history
+    const messages = conversationManager.toCoreMessages(conversationId);
+    
     const result = await BondaAgent.generate({
-      prompt: message
+      messages: messages
     });
+
+    // Add assistant response to history
+    const assistantMessage: ChatMessage = {
+      id: `${Date.now()}-assistant`,
+      role: 'assistant',
+      content: result.text,
+      timestamp: Date.now()
+    };
+    conversationManager.addMessage(conversationId, assistantMessage);
 
     return result.text;
   } catch (error) {
@@ -77,12 +135,22 @@ export async function processMessage(message: string): Promise<string> {
   }
 }
 
-// Note: Streaming may need to be implemented differently based on the AI SDK version
-// For now, we'll use the basic generate method
-export async function processStreamMessage(message: string): Promise<StreamTextResult<any, any>> {
+export async function processStreamMessage(message: string, conversationId: string = 'default'): Promise<StreamTextResult<any, any>> {
   try {
+    // Add user message to history
+    const userMessage: ChatMessage = {
+      id: `${Date.now()}-user`,
+      role: 'user',
+      content: message,
+      timestamp: Date.now()
+    };
+    conversationManager.addMessage(conversationId, userMessage);
+    
+    // Get conversation history
+    const messages = conversationManager.toCoreMessages(conversationId);
+    
     const result = BondaAgent.stream({
-      prompt: message
+      messages: messages
     });
 
     return result;
@@ -90,4 +158,22 @@ export async function processStreamMessage(message: string): Promise<StreamTextR
     console.error('AI processing error:', error);
     throw error;
   }
+}
+
+export async function addAssistantMessageToHistory(content: string, conversationId: string = 'default'): Promise<void> {
+  const assistantMessage: ChatMessage = {
+    id: `${Date.now()}-assistant`,
+    role: 'assistant',
+    content: content,
+    timestamp: Date.now()
+  };
+  conversationManager.addMessage(conversationId, assistantMessage);
+}
+
+export function getChatHistory(conversationId: string = 'default'): ChatMessage[] {
+  return conversationManager.getHistory(conversationId);
+}
+
+export function clearChatHistory(conversationId: string = 'default'): void {
+  conversationManager.clearHistory(conversationId);
 }

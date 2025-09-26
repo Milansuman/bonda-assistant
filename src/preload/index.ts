@@ -5,10 +5,20 @@ import { electronAPI } from '@electron-toolkit/preload'
 const api = {
   bonda: {
     // Send a message to Bonda AI and get a response
-    sendMessage: (message: string) => ipcRenderer.invoke('bonda:message', message),
+    sendMessage: (message: string, conversationId?: string) => 
+      ipcRenderer.invoke('bonda:message', message, conversationId),
     
     // Send a message to Bonda AI and get a streaming response
-    sendStreamMessage: (message: string) => ipcRenderer.invoke('bonda:stream', message),
+    sendStreamMessage: (message: string, conversationId?: string) => 
+      ipcRenderer.invoke('bonda:stream', message, conversationId),
+    
+    // Get chat history
+    getChatHistory: (conversationId?: string) => 
+      ipcRenderer.invoke('bonda:getHistory', conversationId),
+      
+    // Clear chat history
+    clearChatHistory: (conversationId?: string) => 
+      ipcRenderer.invoke('bonda:clearHistory', conversationId),
     
     // Listen for streaming chunks
     onStreamChunk: (callback: (chunk: string) => void) => {

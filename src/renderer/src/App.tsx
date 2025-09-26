@@ -1,26 +1,78 @@
-import {Mic, Play, StopCircle} from "lucide-react";
+import {Mic, Play, StopCircle, PlusCircle} from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { MarkdownComponent } from "./components/markdown";
 
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: number;
+}
+
 export default function App() {
-  const [response, setResponse] = useState("");
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [currentResponse, setCurrentResponse] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const conversationId = "default";
   const promptInputRef = useRef<HTMLInputElement | null>(null);
+  const chatContainerRef = useRef<HTMLDivElement | null>(null);
+
+  // Load chat history on mount
+  useEffect(() => {
+    const loadHistory = async () => {
+      try {
+        const result = await window.api.bonda.getChatHistory(conversationId);
+        if (result.success && result.history) {
+          setChatHistory(result.history);
+        }
+      } catch (error) {
+        console.error('Failed to load chat history:', error);
+      }
+    };
+    
+    loadHistory();
+  }, []);
+
+  // Auto-scroll to bottom when new messages are added
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [chatHistory, currentResponse]);
 
   // Set up streaming listeners
   useEffect(() => {
     const handleStreamChunk = (chunk: string) => {
-      setResponse(prev => prev + chunk);
+      setCurrentResponse(prev => prev + chunk);
     };
 
-    const handleStreamEnd = (fullResponse: string) => {
+    const handleStreamEnd = async (_fullResponse: string) => {
       setIsStreaming(false);
-      setResponse(fullResponse);
+      setCurrentResponse("");
+      
+      // Reload chat history to get the complete conversation
+      try {
+        const result = await window.api.bonda.getChatHistory(conversationId);
+        if (result.success && result.history) {
+          setChatHistory(result.history);
+        }
+      } catch (error) {
+        console.error('Failed to reload chat history:', error);
+      }
     };
 
     const handleStreamError = (error: string) => {
       setIsStreaming(false);
-      setResponse(`Error: ${error}`);
+      setCurrentResponse("");
+      
+      // Add error message to chat
+      const errorMessage: ChatMessage = {
+        id: `${Date.now()}-error`,
+        role: 'assistant',
+        content: `Error: ${error}`,
+        timestamp: Date.now()
+      };
+      setChatHistory(prev => [...prev, errorMessage]);
     };
 
     // Set up listeners
@@ -32,20 +84,50 @@ export default function App() {
     return () => {
       window.api.bonda.removeStreamListeners();
     };
-  }, []);
+  }, [conversationId]);
 
   const sendPrompt = async (prompt: string) => {
     if (!prompt.trim() || isStreaming) return;
     
+    // Add user message to local state immediately
+    const userMessage: ChatMessage = {
+      id: `${Date.now()}-user`,
+      role: 'user',
+      content: prompt,
+      timestamp: Date.now()
+    };
+    setChatHistory(prev => [...prev, userMessage]);
+    
     setIsStreaming(true);
-    setResponse(""); // Clear previous response
+    setCurrentResponse(""); // Clear current response
     
     try {
       // Start streaming response
-      await window.api.bonda.sendStreamMessage(prompt);
+      await window.api.bonda.sendStreamMessage(prompt, conversationId);
     } catch (error) {
       setIsStreaming(false);
-      setResponse(`Error: ${error instanceof Error ? error.message : String(error)}`);
+      setCurrentResponse("");
+      
+      // Add error message to chat
+      const errorMessage: ChatMessage = {
+        id: `${Date.now()}-error`,
+        role: 'assistant',
+        content: `Error: ${error instanceof Error ? error.message : String(error)}`,
+        timestamp: Date.now()
+      };
+      setChatHistory(prev => [...prev, errorMessage]);
+    }
+  };
+
+  const clearHistory = async () => {
+    try {
+      const result = await window.api.bonda.clearChatHistory(conversationId);
+      if (result.success) {
+        setChatHistory([]);
+        setCurrentResponse("");
+      }
+    } catch (error) {
+      console.error('Failed to clear chat history:', error);
     }
   };
 
@@ -72,6 +154,14 @@ export default function App() {
               }}
             />
             <Mic color="#9ca3af" size={18} className="cursor-pointer hover:text-white" />
+            <div title="Clear chat history">
+              <PlusCircle 
+                color="#9ca3af" 
+                size={18} 
+                className="cursor-pointer hover:text-white" 
+                onClick={clearHistory}
+              />
+            </div>
             {isStreaming ? (
               <StopCircle 
                 color="#ff6b6b" 
@@ -96,19 +186,35 @@ export default function App() {
               />
             )}
           </div>
-          <div className="flex flex-col p-5 min-h-20 h-fit max-h-96 overflow-auto">
-            {isStreaming && !response && (
-              <div className="text-gray-400 text-sm animate-pulse">
-                Thinking...
+          <div 
+            ref={chatContainerRef}
+            className="flex flex-col p-5 min-h-20 h-fit max-h-96 overflow-auto space-y-2"
+          >
+            {chatHistory.map((message) => (
+              <div key={message.id} className={message.role === 'user' ? 'opacity-40' : 'opacity-100'}>
+                {message.role === 'assistant' ? (
+                  <div className="prose prose-invert prose-sm max-w-none">
+                    <MarkdownComponent response={message.content} />
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-200">{message.content}</div>
+                )}
               </div>
-            )}
-            {response && (
-              <div className="prose prose-invert prose-sm max-w-none">
-                <MarkdownComponent response={response} />
+            ))}
+            
+            {isStreaming && (
+              <div className="opacity-100">
+                {currentResponse ? (
+                  <div className="prose prose-invert prose-sm max-w-none">
+                    <MarkdownComponent response={currentResponse} />
+                    <div className="inline-block w-2 h-4 bg-gray-400 animate-pulse ml-1 align-baseline"></div>
+                  </div>
+                ) : (
+                  <div className="text-gray-400 text-sm animate-pulse">
+                    Thinking...
+                  </div>
+                )}
               </div>
-            )}
-            {isStreaming && response && (
-              <div className="inline-block w-2 h-4 bg-gray-400 animate-pulse ml-1 align-baseline"></div>
             )}
           </div>
         </div>
