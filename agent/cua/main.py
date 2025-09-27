@@ -22,8 +22,9 @@ def root():
 @app.post("/run")
 def run(request: RunRequest):
     main_model = ChatOpenAI(
-        model="gpt-5",
-        reasoning={"effort": "minimal"},
+        model="gpt-4.1",
+        # reasoning={"effort": "low"},
+        temperature=0.5,
         api_key=os.environ["OPENAI_API_KEY"],
     ).bind_tools(TOOLS, parallel_tool_calls=False)
     
