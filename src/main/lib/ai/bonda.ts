@@ -107,6 +107,12 @@ export const BondaAgent = new Agent({
   WINDOWS SPECIFIC GUIDELINES:
   1. Ensure windows commands are running using powershell.
 
+  LATEX RULES:
+  1. When working on a latex project, create a folder in the tmp directory and then copy the output of the latex source to the desired location.
+  2. Use the appropriate document class when setting up the source code.
+  3. Use pdflatex -interaction=nonstopmode wherever possible. <IMPORTANT>Always export to pdf</IMPORTANT>
+  4. Use latex for tasks like creating presentations, documents, etc.
+
 RULES:
 1. Use this exact structure when returning folders or files:
 
