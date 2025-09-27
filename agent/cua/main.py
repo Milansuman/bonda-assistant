@@ -1,5 +1,4 @@
 import os
-import json
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -23,19 +22,9 @@ def root():
 @app.post("/run")
 def run(request: RunRequest):
     main_model = ChatOpenAI(
-        # model="qwen/qwen2.5-vl-72b-instruct",
-        # model="bytedance/ui-tars-1.5-7b",
-        # model="z-ai/glm-4.5v",
-        model="gpt-4.1",
+        model="gpt-5",
+        reasoning={"effort": "minimal"},
         api_key=os.environ["OPENAI_API_KEY"],
-        # api_key=os.environ["OPENROUTER_API_KEY"],
-        # base_url="https://openrouter.ai/api/v1",
-        # extra_body={
-            # "provider": {"only": ["hyperbolic"]}
-        # }
-        # extra_body={
-        #     "provider": {"only": ["z-ai"]}
-        # }
     ).bind_tools(TOOLS, parallel_tool_calls=False)
     
     messages = [SystemMessage(content=MAIN_PROMPT)]
@@ -51,39 +40,40 @@ def run(request: RunRequest):
     finish = False
     function_exec_state = False
     screen_index = None
-    # try:
-    while (not finish or function_exec_state):
-        response = main_model.invoke(messages)
-        print("Response: ", response)
-        messages.append(response)
-        function_exec_state = False
-        if (not response.tool_calls):
-            finish = True
-        else:
-            for tool_call in response.tool_calls:
-                function_exec_state = True
-                tool_result = invoke_tool({
-                    "name": tool_call["name"],
-                    "arguments": tool_call["args"]
-                })
-                messages.append(ToolMessage(
-                    content=tool_result["text"],
-                    name=tool_call["name"],
-                    tool_call_id=tool_call["id"]
-                ))
-                if (tool_result["type"] == "screen"):
-                    if (screen_index):
-                        messages.pop(screen_index)
-                    screen_index = len(messages)
-                    messages.append(HumanMessage(
-                        content=[
-                            {
-                                "type": "image",
-                                "source_type": "base64",
-                                "mime_type": "image/jpeg",
-                                "data": tool_result["data"]
-                            }
-                        ]
+    try:
+        while (not finish or function_exec_state):
+            response = main_model.invoke(messages)
+            print("Response: ", response)
+            messages.append(response)
+            function_exec_state = False
+            if (not response.tool_calls):
+                finish = True
+            else:
+                for tool_call in response.tool_calls:
+                    function_exec_state = True
+                    tool_result = invoke_tool({
+                        "name": tool_call["name"],
+                        "arguments": tool_call["args"]
+                    })
+                    messages.append(ToolMessage(
+                        content=tool_result["text"],
+                        name=tool_call["name"],
+                        tool_call_id=tool_call["id"]
                     ))
-    # except Exception as e:
-    #     return {"error": str(e)}
+                    if (tool_result["type"] == "screen"):
+                        if (screen_index):
+                            messages.pop(screen_index)
+                        screen_index = len(messages)
+                        messages.append(HumanMessage(
+                            content=[
+                                {
+                                    "type": "image",
+                                    "source_type": "base64",
+                                    "mime_type": "image/jpeg",
+                                    "data": tool_result["data"]
+                                }
+                            ]
+                        ))
+        return {"status": "success", "message": response.content}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}

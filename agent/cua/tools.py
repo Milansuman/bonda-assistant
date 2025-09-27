@@ -75,8 +75,8 @@ class KEYS(str, Enum):
     PageDown = "PageDown"
 
 @tool
-def fetch_screen():
-    """Get the current page screenshot.
+def capture_screen():
+    """Get the current desktop screenshot.
     
     """
     try:
@@ -106,15 +106,17 @@ def fetch_screen():
 
 @tool
 def get_coordinates(description: str):
-    """Get the coordinates of the specified element. ALWAYS fetch the screen before calling this tool.
+    """Get the coordinates of the specified element. ALWAYS capture the screen before calling this tool.
     
     Args:
-        description: A brief description about the element to locate. Also pass your intention, like 'I want to click on it'.
+        description: A brief description about the element to locate.
     
     """
+    
     try:
         grounding_model = ChatOpenAI(
             model="qwen/qwen2.5-vl-72b-instruct",
+            temperature=0.3,
             # model="bytedance/ui-tars-1.5-7b",
             api_key=os.environ["OPENROUTER_API_KEY"],
             base_url="https://openrouter.ai/api/v1",
@@ -192,7 +194,7 @@ def type_text(x: int, y: int, text: str):
     return { "type": "text", "text": "Text typed successfully" }
 
 @tool
-def clearValue(x: int, y: int):
+def clear_value(x: int, y: int):
     """Clears the value in the specified input field. Located by its x and y coordinates.
     
     Args:
@@ -276,22 +278,12 @@ def error(message: str):
     
     """
 
-@tool
-def message(text: str):
-    """Print a message.
-    
-    Args:
-        text: The message to print.
-    
-    """
-    return { "type": "text", "text": "Message printed successfully" }
-
 TOOLS = [
-    fetch_screen,
+    capture_screen,
     get_coordinates,
     click,
     type_text,
-    clearValue,
+    clear_value,
     key_press,
     scroll,
     wait
