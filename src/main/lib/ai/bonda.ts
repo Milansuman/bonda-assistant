@@ -19,6 +19,7 @@ export interface ChatMessage {
 // Conversation state manager
 class ConversationManager {
   private conversations = new Map<string, ChatMessage[]>();
+  private abortControllers = new Map<string, AbortController>();
 
   addMessage(conversationId: string, message: ChatMessage): void {
     if (!this.conversations.has(conversationId)) {
@@ -43,6 +44,24 @@ class ConversationManager {
       content: msg.content
     }));
   }
+
+  createAbortController(conversationId: string): AbortController {
+    const controller = new AbortController();
+    this.abortControllers.set(conversationId, controller);
+    return controller;
+  }
+
+  abortConversation(conversationId: string): void {
+    const controller = this.abortControllers.get(conversationId);
+    if (controller) {
+      controller.abort();
+      this.abortControllers.delete(conversationId);
+    }
+  }
+
+  getAbortSignal(conversationId: string): AbortSignal | undefined {
+    return this.abortControllers.get(conversationId)?.signal;
+  }
 }
 
 export const conversationManager = new ConversationManager();
@@ -66,6 +85,7 @@ export const BondaAgent = new Agent({
   9. Always use shell commands for any mathematical calculation.
   10. The user is not used to technical jargon. Use natural, easy to understand language.
   11. If another language prompt is given, translate to english and understand the prompt and then execute the function back in ENGLISH ONLY and also ONLY REPLY IN ENGLISH
+  12. Ensure any command outputs are limited to around 1000 tokens by truncating the output. For example. don't just use ps aux directly, truncate the output to show the processes using up the most memory
 
   FILE ORGANIZATION GUIDELINES:
   1. Always gather information about the relevant folder before performing the action.
@@ -108,8 +128,6 @@ RULES:
 3. Do not remove or trim any symbols — the outer 【 】 must always be present.
 4. Include all files and subfolders as objects in the "folder" array.
 5. Only folders and files are allowed; do not include anything else.`,
-
-
   tools: {
     runCommand: tool({
       description: "Tool to execute commands in the terminal",
@@ -149,8 +167,25 @@ export async function processMessage(message: string, conversationId: string = '
     // Get conversation history
     const messages = conversationManager.toCoreMessages(conversationId);
 
-    const result = await BondaAgent.generate({
-      messages: messages
+    // Create abort controller for this conversation
+    const abortController = conversationManager.createAbortController(conversationId);
+
+    // Wrap the generation in a promise that respects the abort signal
+    const result = await new Promise<any>((resolve, reject) => {
+      if (abortController.signal.aborted) {
+        reject(new DOMException('Request aborted', 'AbortError'));
+        return;
+      }
+
+      const generatePromise = BondaAgent.generate({
+        messages: messages
+      });
+
+      abortController.signal.addEventListener('abort', () => {
+        reject(new DOMException('Request aborted', 'AbortError'));
+      });
+
+      generatePromise.then(resolve).catch(reject);
     });
 
     // Add assistant response to history
@@ -183,11 +218,38 @@ export async function processStreamMessage(message: string, conversationId: stri
     // Get conversation history
     const messages = conversationManager.toCoreMessages(conversationId);
 
+    // Create abort controller for this conversation
+    const abortController = conversationManager.createAbortController(conversationId);
+
+    // Create a wrapper that monitors the abort signal
     const result = BondaAgent.stream({
       messages: messages
     });
 
-    return result;
+    // Create a new stream that respects the abort signal
+    const abortableStream = {
+      textStream: async function* () {
+        try {
+          for await (const chunk of result.fullStream) {
+            if (abortController.signal.aborted) {
+              throw new DOMException('Stream aborted', 'AbortError');
+            }
+            if(chunk.type === "text-delta"){
+              yield chunk.text;
+            }else{
+              console.log(chunk);
+            }
+          }
+        } catch (error) {
+          if (abortController.signal.aborted) {
+            throw new DOMException('Stream aborted', 'AbortError');
+          }
+          throw error;
+        }
+      }()
+    };
+
+    return abortableStream;
   } catch (error) {
     console.error('AI processing error:', error);
     throw error;
@@ -210,4 +272,8 @@ export function getChatHistory(conversationId: string = 'default'): ChatMessage[
 
 export function clearChatHistory(conversationId: string = 'default'): void {
   conversationManager.clearHistory(conversationId);
+}
+
+export function abortConversation(conversationId: string = 'default'): void {
+  conversationManager.abortConversation(conversationId);
 }

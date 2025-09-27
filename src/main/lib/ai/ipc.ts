@@ -1,5 +1,5 @@
 import { ipcMain } from "electron";
-import { processMessage, processStreamMessage, addAssistantMessageToHistory, getChatHistory, clearChatHistory, ChatMessage } from "./bonda";
+import { processMessage, processStreamMessage, addAssistantMessageToHistory, getChatHistory, clearChatHistory, abortConversation, ChatMessage } from "./bonda";
 
 // IPC channel names
 export const IPC_CHANNELS = {
@@ -12,6 +12,7 @@ export const IPC_CHANNELS = {
   BONDA_STREAM_ERROR: 'bonda:stream:error',
   BONDA_GET_HISTORY: 'bonda:getHistory',
   BONDA_CLEAR_HISTORY: 'bonda:clearHistory',
+  BONDA_ABORT: 'bonda:abort',
 } as const;
 
 /**
@@ -40,21 +41,31 @@ export function initializeBondaIPC(): void {
       // Handle the stream and send chunks back to renderer
       const chunks: string[] = [];
       
-      for await (const chunk of streamResult.textStream) {
-        chunks.push(chunk);
-        // Send each chunk to the renderer
-        event.sender.send(IPC_CHANNELS.BONDA_STREAM_CHUNK, chunk);
+      try {
+        for await (const chunk of streamResult.textStream) {
+          chunks.push(chunk);
+          // Send each chunk to the renderer
+          event.sender.send(IPC_CHANNELS.BONDA_STREAM_CHUNK, chunk);
+        }
+        
+        const fullResponse = chunks.join('');
+        
+        // Add assistant response to history after streaming completes
+        await addAssistantMessageToHistory(fullResponse, conversationId);
+        
+        // Send end signal
+        event.sender.send(IPC_CHANNELS.BONDA_STREAM_END, fullResponse);
+        
+        return { success: true, response: fullResponse };
+      } catch (streamError) {
+        // Handle stream abortion or other streaming errors
+        if (streamError instanceof Error && streamError.name === 'AbortError') {
+          console.log('Stream aborted by user');
+          event.sender.send(IPC_CHANNELS.BONDA_STREAM_ERROR, 'Stream aborted');
+          return { success: false, error: 'Stream aborted' };
+        }
+        throw streamError;
       }
-      
-      const fullResponse = chunks.join('');
-      
-      // Add assistant response to history after streaming completes
-      await addAssistantMessageToHistory(fullResponse, conversationId);
-      
-      // Send end signal
-      event.sender.send(IPC_CHANNELS.BONDA_STREAM_END, fullResponse);
-      
-      return { success: true, response: fullResponse };
     } catch (error) {
       console.error('Bonda stream processing error:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -85,6 +96,18 @@ export function initializeBondaIPC(): void {
       return { success: true };
     } catch (error) {
       console.error('Error clearing chat history:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return { success: false, error: errorMessage };
+    }
+  });
+
+  // Handle aborting conversation
+  ipcMain.handle(IPC_CHANNELS.BONDA_ABORT, async (_event, conversationId?: string) => {
+    try {
+      abortConversation(conversationId);
+      return { success: true };
+    } catch (error) {
+      console.error('Error aborting conversation:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
       return { success: false, error: errorMessage };
     }

@@ -2,6 +2,7 @@
 import { Mic, Play, StopCircle, PlusCircle, Podcast } from 'lucide-react'
 import { useRef, useState, useEffect } from 'react'
 import { MessageRenderer } from "./components/MessageRenderer";
+import audioFile from './assets/damn_good_audio.mp3';
 
 interface ChatMessage {
   id: string
@@ -62,6 +63,24 @@ export default function App() {
     }
   }, [])
 
+  // Play audio when window is maximized
+  useEffect(() => {
+    const playAudio = () => {
+      const audio = new Audio(audioFile)
+      audio.play().catch(error => {
+        console.log('Failed to play audio:', error)
+      })
+    }
+
+    // Set up window maximize listener
+    window.api?.onWindowMaximized?.(playAudio)
+
+    // Cleanup listener on unmount
+    return () => {
+      window.api?.removeWindowMaximizedListener?.()
+    }
+  }, [])
+
   const getTranscript = async () => {
     try {
       setRecording(true);
@@ -118,14 +137,17 @@ export default function App() {
       setIsStreaming(false)
       setCurrentResponse('')
 
-      // Add error message to chat
-      const errorMessage: ChatMessage = {
-        id: `${Date.now()}-error`,
-        role: 'assistant',
-        content: `Error: ${error}`,
-        timestamp: Date.now()
+      // Don't show error message if stream was aborted by user
+      if (error !== 'Stream aborted') {
+        // Add error message to chat
+        const errorMessage: ChatMessage = {
+          id: `${Date.now()}-error`,
+          role: 'assistant',
+          content: `I'm unable to process this request`,
+          timestamp: Date.now()
+        }
+        setChatHistory((prev) => [...prev, errorMessage])
       }
-      setChatHistory((prev) => [...prev, errorMessage])
     }
 
     // Set up listeners
@@ -203,6 +225,7 @@ export default function App() {
             </span>
             <input
               ref={promptInputRef}
+              autoFocus
               placeholder={recording ? "Listening..." : "Ask me anything!"}
               className="flex-1 bg-transparent outline-none text-sm placeholder-gray-400"
               disabled={isStreaming}
@@ -239,7 +262,9 @@ export default function App() {
                 size={18}
                 className="cursor-pointer hover:text-white"
                 onClick={() => {
+                  window.api.bonda.abortConversation(conversationId)
                   setIsStreaming(false)
+                  setCurrentResponse('')
                 }}
               />
             ) : (
@@ -325,24 +350,6 @@ export default function App() {
                   >
                     🌍 Open website
                   </button>
-                  <button
-                    onClick={() => sendPrompt('Here are the contents: 【{"type":"folder","folder":[{"name":"package.json","path":"/project/package.json","type":"file","size":"2048","timestamp":"2025-09-25 16:20:15"},{"name":"src","path":"/project/src","type":"directory","size":"4096","timestamp":"2025-09-26 10:30:00"},{"name":"README.md","path":"/project/README.md","type":"file","size":"1024","timestamp":"2025-09-24 14:45:30"}]}】')}
-                    className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
-                  >
-                    🧪 Test Folder JSON
-                  </button>
-                  <button
-                    onClick={() => sendPrompt('I found several files: 【{"type":"folder","folder":[{"name":"app.py","path":"/home/user/app.py","type":"file","size":"5432","timestamp":"2025-09-26 09:15:00"},{"name":"templates","path":"/home/user/templates","type":"directory","size":"4096","timestamp":"2025-09-25 18:30:00"}]}】\n\nThe **app.py** file appears to be the main application. Would you like me to help with anything specific?')}
-                    className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
-                  >
-                    📝 Test Mixed Content
-                  </button>
-                  <button
-                    onClick={() => sendPrompt('Here are code examples in different languages:\n\n**Python:**\n```python\n@decorator\ndef greet(name: str) -> str:\n    """Greet someone with their name."""\n    return f"Hello, {name}!"\n\n# Example usage\nif __name__ == "__main__":\n    print(greet("World"))\n```\n\n**JavaScript:**\n```javascript\nconst fetchData = async (url) => {\n  try {\n    const response = await fetch(url);\n    return await response.json();\n  } catch (error) {\n    console.error("Error:", error);\n  }\n};\n```\n\n**Java:**\n```java\npublic class HelloWorld {\n    public static void main(String[] args) {\n        System.out.println("Hello, World!");\n    }\n}\n```\n\n**HTML:**\n```html\n<!DOCTYPE html>\n<html>\n<head>\n    <title>My Page</title>\n</head>\n<body>\n    <h1 class="header">Welcome!</h1>\n</body>\n</html>\n```')}
-                    className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
-                  >
-                    💻 Test Code Blocks
-                  </button>
                 </div>
               </div>
             )}
@@ -379,6 +386,8 @@ export default function App() {
                 )}
               </div>
             )}
+
+            {/*isToolCall && show currently executing tool call here. */}
           </div>
         </div>
       </div>

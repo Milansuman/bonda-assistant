@@ -40,11 +40,25 @@ const api = {
       ipcRenderer.removeAllListeners('bonda:stream:chunk')
       ipcRenderer.removeAllListeners('bonda:stream:end')
       ipcRenderer.removeAllListeners('bonda:stream:error')
-    }
+    },
+
+    // Abort conversation
+    abortConversation: (conversationId?: string) => 
+      ipcRenderer.invoke('bonda:abort', conversationId)
   },
   
   // Hide window
-  hideWindow: () => ipcRenderer.invoke('hideWindow')
+  hideWindow: () => ipcRenderer.invoke('hideWindow'),
+
+  // Listen for window maximize event
+  onWindowMaximized: (callback: () => void) => {
+    ipcRenderer.on('window:maximized', callback)
+  },
+
+  // Remove window maximize listener
+  removeWindowMaximizedListener: () => {
+    ipcRenderer.removeAllListeners('window:maximized')
+  }
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

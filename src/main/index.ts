@@ -25,6 +25,7 @@ function createWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => {
+    mainWindow.webContents.send('window:maximized');
     mainWindow.maximize()
     mainWindow.focus()
   })
@@ -127,6 +128,7 @@ app.whenReady().then(() => {
     if (mainWindow.isVisible()) {
       mainWindow.hide()
     } else {
+      mainWindow.webContents.send('window:maximized');
       mainWindow.show()
       mainWindow.focus()
     }
