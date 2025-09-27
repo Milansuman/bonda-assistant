@@ -3,7 +3,7 @@ import { Mic, Play, CircleX, PlusCircle, Podcast } from 'lucide-react'
 import { useRef, useState, useEffect } from 'react'
 import { MessageRenderer } from "./components/MessageRenderer";
 import audioFile from './assets/damn_good_audio.mp3';
-
+import icon from "./assets/icon.ico";
 interface ChatMessage {
   id: string
   role: 'user' | 'assistant'
@@ -221,7 +221,7 @@ export default function App() {
         <div ref={contentDivRef} className="w-[600px] bg-[#0c0e10] border border-white/10 rounded-2xl shadow-xl backdrop-blur-lg text-gray-200">
           <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10">
             <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-white/5 text-[#7cc3ff] text-sm font-bold">
-              ⌘
+              <img src={icon} alt="" />
             </span>
             <input
               ref={promptInputRef}
