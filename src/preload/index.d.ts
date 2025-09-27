@@ -24,6 +24,8 @@ interface API {
   hideWindow: () => Promise<void>
   onWindowMaximized: (callback: () => void) => void
   removeWindowMaximizedListener: () => void
+  onVoiceRecordingStart: (callback: () => void) => void
+  removeVoiceRecordingListener: () => void
 }
 
 declare global {

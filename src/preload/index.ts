@@ -58,6 +58,16 @@ const api = {
   // Remove window maximize listener
   removeWindowMaximizedListener: () => {
     ipcRenderer.removeAllListeners('window:maximized')
+  },
+
+  // Listen for voice recording start event
+  onVoiceRecordingStart: (callback: () => void) => {
+    ipcRenderer.on('voice:start-recording', callback)
+  },
+
+  // Remove voice recording listener
+  removeVoiceRecordingListener: () => {
+    ipcRenderer.removeAllListeners('voice:start-recording')
   }
 }
 
