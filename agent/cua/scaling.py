@@ -22,7 +22,7 @@ def get_scaling_factor_macos():
     return 1.0
 
 def get_scaling_factor_linux():
-    return 1.0
+    return 1.25
 
 def get_scaling_factor(x=0, y=0):
     system = platform.system()

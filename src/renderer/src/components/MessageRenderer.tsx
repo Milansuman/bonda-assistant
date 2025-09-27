@@ -4,7 +4,8 @@ import { useLLMOutput, type LLMOutputComponent } from "@llm-ui/react";
 import { jsonBlock, parseJson5 } from "@llm-ui/json";
 import { findCompleteCodeBlock, codeBlockLookBack, parseCompleteMarkdownCodeBlock } from "@llm-ui/code";
 import { MarkdownComponent } from "./markdown";
-import FolderSchema from "../utils/jsonSchema";
+import SystemSpecRenderer from "./SystemSpecRenderer";
+import { FolderSchema, SystemSpecSchema } from "../utils/jsonSchema";
 import { Folder as FolderIcon, File, Copy, Check } from "lucide-react";
 
 interface MessageRendererProps {
@@ -83,6 +84,29 @@ const FolderComponent: LLMOutputComponent = ({ blockMatch }) => {
       </div>
     </div>
   );
+};
+
+// SystemSpec Component that works with LLM-UI
+const SystemSpecComponent: LLMOutputComponent = ({ blockMatch }) => {
+  if (!blockMatch.isVisible) {
+    return null;
+  }
+
+  // Parse and validate the JSON using the schema
+  const { success, data, error } = SystemSpecSchema.safeParse(
+    parseJson5(blockMatch.output)
+  );
+
+  if (!success || !data) {
+    return (
+      <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 my-2">
+        <div className="text-red-400 text-sm font-medium mb-2">Invalid system specs data</div>
+        <div className="text-red-300 text-xs">{error ? error.toString() : "Unknown error"}</div>
+      </div>
+    );
+  }
+
+  return <SystemSpecRenderer data={data} />;
 };
 
 const highlightCode = (code: string, language: string): string => {
@@ -177,6 +201,10 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({ content, isStr
       {
         ...jsonBlock({ type: "folder" }),
         component: FolderComponent,
+      },
+      {
+        ...jsonBlock({ type: "system-specs" }),
+        component: SystemSpecComponent,
       },
       {
         findCompleteMatch: findCompleteCodeBlock(),
