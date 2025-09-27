@@ -8,12 +8,17 @@ recorder: AudioToTextRecorder | None = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global recorder
+    global recorder2
     recorder = AudioToTextRecorder(
-        model="large-v1",
+        model="tiny",
         device='cuda',
         gpu_device_index=0,
         compute_type='int8',
     )
+    recorder2 = AudioToTextRecorder(
+        model="medium"
+    )
+    
     print("Initialized RealtimeSTT with optimized settings")
     yield
     print("Closed the ai")
@@ -40,7 +45,15 @@ def record():
         return {"error": "Recorder not initialized"}
     response = recorder.text()
     return response
-
+def record2():
+    if recorder2 is None:
+        return {"error": "Recorder not initialized"}
+        response = recorder2.text()
+        return response
 @app.get("/callfortext")
 def callfortext():
     return {"text": record()}
+
+@app.get("/callfortext2")
+def callfortext2():
+    return {"text": record2()}
