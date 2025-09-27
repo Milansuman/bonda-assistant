@@ -321,18 +321,6 @@ export default function App() {
                     🌐 Check network
                   </button>
                   <button
-                    onClick={() => sendPrompt('System information')}
-                    className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
-                  >
-                    📊 Detailed Test
-                  </button>
-                  <button
-                    onClick={() => sendPrompt('System information')}
-                    className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
-                  >
-                    📊 Simple Test
-                  </button>
-                  <button
                     onClick={() => sendPrompt('Show running processes')}
                     className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
                   >
