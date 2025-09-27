@@ -141,13 +141,18 @@ app.whenReady().then(() => {
   })
 
   // Register voice recording shortcut
-  globalShortcut.register('Alt+B+M', () => {
+  globalShortcut.register('Alt+M', () => {
     mainWindow.webContents.send('voice:start-recording');
     if (!mainWindow.isVisible()) {
       mainWindow.webContents.send('window:maximized');
       mainWindow.show()
       mainWindow.focus()
     }
+  })
+
+  // Register transcript toggle shortcut
+  globalShortcut.register('Alt+T', () => {
+    mainWindow.webContents.send('transcript:toggle');
   })
 
   createWindow()

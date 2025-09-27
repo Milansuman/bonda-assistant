@@ -24,11 +24,15 @@ export default function App() {
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
   const [recording, setRecording] = useState(false);
   const contentDivRef = useRef<HTMLDivElement | null>(null);
-  
+
+  // Transcript toggle state
+  const [useTranscript2, setUseTranscript2] = useState(false);
+  const [showToggleNotification, setShowToggleNotification] = useState(false);
+
   // Mention functionality state
   const [showMentions, setShowMentions] = useState(false);
   const [inputValue, setInputValue] = useState("");
-  
+
   // Available mentions
   const availableMentions = [
     { id: 'cua', label: '@cua', description: 'CUA Assistant' },
@@ -56,12 +60,12 @@ export default function App() {
   // Handle mention detection
   const handleInputChange = (value: string) => {
     setInputValue(value);
-    
+
     // Detect @ mentions
     const cursorPosition = promptInputRef.current?.selectionStart || 0;
     const textBeforeCursor = value.substring(0, cursorPosition);
     const mentionMatch = textBeforeCursor.match(/@(\w*)$/);
-    
+
     if (mentionMatch) {
       setShowMentions(true);
     } else {
@@ -73,23 +77,23 @@ export default function App() {
   const insertMention = (mention: { id: string; label: string }) => {
     const input = promptInputRef.current;
     if (!input) return;
-    
+
     const value = input.value;
     const cursorPosition = input.selectionStart || 0;
     const textBeforeCursor = value.substring(0, cursorPosition);
     const textAfterCursor = value.substring(cursorPosition);
-    
+
     // Find the @ symbol position
     const mentionStartIndex = textBeforeCursor.lastIndexOf('@');
-    const newValue = 
-      value.substring(0, mentionStartIndex) + 
-      mention.label + ' ' + 
+    const newValue =
+      value.substring(0, mentionStartIndex) +
+      mention.label + ' ' +
       textAfterCursor;
-    
+
     input.value = newValue;
     setInputValue(newValue);
     setShowMentions(false);
-    
+
     // Set cursor position after the mention
     const newCursorPosition = mentionStartIndex + mention.label.length + 1;
     input.focus();
@@ -141,7 +145,11 @@ export default function App() {
     const handleVoiceRecording = () => {
       if (!recording && !isStreaming) {
         setRecording(true);
-        getTranscript()
+        if (useTranscript2) {
+          getTranscript2()
+        } else {
+          getTranscript()
+        }
       }
     }
 
@@ -152,7 +160,27 @@ export default function App() {
     return () => {
       window.api?.removeVoiceRecordingListener?.()
     }
-  }, [recording, isStreaming])
+  }, [recording, isStreaming, useTranscript2])
+
+  // Listen for transcript toggle shortcut
+  useEffect(() => {
+    const handleTranscriptToggle = () => {
+      setUseTranscript2(prev => {
+        const newValue = !prev;
+        setShowToggleNotification(true);
+        setTimeout(() => setShowToggleNotification(false), 2000);
+        return newValue;
+      });
+    }
+
+    // Set up transcript toggle listener
+    window.api?.onTranscriptToggle?.(handleTranscriptToggle)
+
+    // Cleanup listener on unmount
+    return () => {
+      window.api?.removeTranscriptToggleListener?.()
+    }
+  }, [])
 
   const getTranscript = async () => {
     try {
@@ -167,20 +195,33 @@ export default function App() {
       if (response.ok) {
         const data = await response.json()
         console.log('Transcript data:', data) // Debug log
-        if (promptInputRef.current && data.text) {
-          promptInputRef.current.value = data.text
-          setInputValue(data.text)
-          promptInputRef.current.focus()
-          sendPrompt(data.text)
-          promptInputRef.current.value = ''
-          setInputValue('')
+        if (data.text) {
+          // Check if it's a navigation command first
+          if ((data.text as string).toLowerCase() === "next" || (data.text as string).toLowerCase() === "previous") {
+            const navResult = await window.api.navigation.executeCommand(data.text);
+            if (navResult.success) {
+              console.log('Navigation command executed:', navResult.message);
+              // Don't process through AI, just show the navigation was executed
+              return;
+            }
+          }
+
+          // If not a navigation command, process normally
+          if (promptInputRef.current) {
+            promptInputRef.current.value = data.text
+            setInputValue(data.text)
+            promptInputRef.current.focus()
+            sendPrompt(data.text)
+            promptInputRef.current.value = ''
+            setInputValue('')
+          }
         }
       } else {
         console.error('Failed to get transcript:', response.status)
       }
     } catch (error) {
       console.error('Error fetching transcript:', error)
-    }finally{
+    } finally {
       setRecording(false);
     }
   }
@@ -198,20 +239,33 @@ export default function App() {
       if (response.ok) {
         const data = await response.json()
         console.log('Transcript data:', data) // Debug log
-        if (promptInputRef.current && data.text) {
-          promptInputRef.current.value = data.text
-          setInputValue(data.text)
-          promptInputRef.current.focus()
-          sendPrompt(data.text)
-          promptInputRef.current.value = ''
-          setInputValue('')
+        if (data.text) {
+          // Check if it's a navigation command first
+          if ((data.text as string).toLowerCase() === "next" || (data.text as string).toLowerCase() === "previous") {
+            const navResult = await window.api.navigation.executeCommand(data.text);
+            if (navResult.success) {
+              console.log('Navigation command executed:', navResult.message);
+              // Don't process through AI, just show the navigation was executed
+              return;
+            }
+          }
+
+          // If not a navigation command, process normally
+          if (promptInputRef.current) {
+            promptInputRef.current.value = data.text
+            setInputValue(data.text)
+            promptInputRef.current.focus()
+            sendPrompt(data.text)
+            promptInputRef.current.value = ''
+            setInputValue('')
+          }
         }
       } else {
         console.error('Failed to get transcript:', response.status)
       }
     } catch (error) {
       console.error('Error fetching transcript:', error)
-    }finally{
+    } finally {
       setRecording(false);
     }
   }
@@ -304,7 +358,7 @@ export default function App() {
       // setShowBurst(false);
     }
   };
-  
+
 
   const clearHistory = async () => {
     try {
@@ -324,6 +378,12 @@ export default function App() {
       {/* {showBurst && <div className="bonda-overlay-burst"></div>} */}
 
       <div className="w-screen h-screen flex items-center justify-center bg-transparent">
+        {/* Toggle notification */}
+        {showToggleNotification && (
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg animate-fade-in">
+            Switched to Transcript {useTranscript2 ? '2' : '1'}
+          </div>
+        )}
         <div ref={contentDivRef} className="w-[600px] bg-[#0c0e10] border border-white/10 rounded-2xl shadow-xl backdrop-blur-lg text-gray-200">
           <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10">
             <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-white/5 text-[#7cc3ff] text-sm font-bold">
@@ -346,7 +406,7 @@ export default function App() {
                     ))}
                   </div>
                 </div>
-                
+
                 {/* Actual input */}
                 <input
                   ref={promptInputRef}
@@ -354,7 +414,7 @@ export default function App() {
                   value={inputValue}
                   placeholder={recording ? "Listening..." : "Ask me anything!"}
                   className="w-full bg-transparent outline-none text-sm placeholder-gray-400 relative z-20"
-                  style={{ 
+                  style={{
                     backgroundColor: 'transparent',
                     color: 'white',
                     caretColor: '#ffffff'
@@ -375,7 +435,7 @@ export default function App() {
                     }
                   }}
                 />
-                
+
                 {/* Text overlay layer for @cua coloring */}
                 <div className="absolute inset-0 w-full h-full text-sm pointer-events-none overflow-hidden z-30 flex items-center">
                   <div className="whitespace-pre select-none" style={{ fontSize: '14px', fontFamily: 'inherit', lineHeight: '20px' }}>
@@ -391,7 +451,7 @@ export default function App() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Mention dropdown */}
               {showMentions && (
                 <div className="absolute top-full left-0 mt-1 w-48 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50">
@@ -417,16 +477,24 @@ export default function App() {
                 </div>
               )}
             </div>
-           { recording ? (
-              <Podcast
-                color="#ff6b6b" pointer-events-none size={18} />
+            {recording ? (
+              <div className="flex items-center gap-1">
+                <Podcast
+                  color="#ff6b6b" size={18} />
+                <span className="text-xs text-gray-400">
+                  {useTranscript2 ? '2' : '1'}
+                </span>
+              </div>
             ) : (
-               <Mic
-              color="#9ca3af"
-              size={18}
-              className="cursor-pointer hover:text-white"
-              onClick={getTranscript}
-            />
+              <div className="flex items-center gap-1 cursor-pointer hover:text-white" onClick={() => useTranscript2 ? getTranscript2() : getTranscript()}>
+                <Mic
+                  color="#9ca3af"
+                  size={18}
+                />
+                <span className="text-xs text-gray-400">
+                  {useTranscript2 ? '2' : '1'}
+                </span>
+              </div>
             )}
             <div title="Clear chat history">
               <PlusCircle
@@ -534,7 +602,7 @@ export default function App() {
                 </div>
               </div>
             )}
-            
+
 
             {chatHistory.map((message) => (
               <div
@@ -542,8 +610,8 @@ export default function App() {
                 className={message.role === 'user' ? 'opacity-40' : 'opacity-100'}
               >
                 {message.role === 'assistant' ? (
-                  <MessageRenderer 
-                    content={message.content} 
+                  <MessageRenderer
+                    content={message.content}
                     isStreamFinished={true}
                   />
                 ) : (
@@ -556,8 +624,8 @@ export default function App() {
               <div className="opacity-100">
                 {currentResponse ? (
                   <div className="relative">
-                    <MessageRenderer 
-                      content={currentResponse} 
+                    <MessageRenderer
+                      content={currentResponse}
                       isStreamFinished={false}
                     />
                     <div className="inline-block w-2 h-4 bg-gray-400 animate-pulse ml-1 align-baseline"></div>

@@ -46,6 +46,12 @@ const api = {
     abortConversation: (conversationId?: string) => 
       ipcRenderer.invoke('bonda:abort', conversationId)
   },
+
+  // Navigation commands
+  navigation: {
+    executeCommand: (message: string) => 
+      ipcRenderer.invoke('navigation:command', message)
+  },
   
   // Hide window
   hideWindow: () => ipcRenderer.invoke('hideWindow'),
@@ -68,6 +74,16 @@ const api = {
   // Remove voice recording listener
   removeVoiceRecordingListener: () => {
     ipcRenderer.removeAllListeners('voice:start-recording')
+  },
+
+  // Listen for transcript toggle event
+  onTranscriptToggle: (callback: () => void) => {
+    ipcRenderer.on('transcript:toggle', callback)
+  },
+
+  // Remove transcript toggle listener
+  removeTranscriptToggleListener: () => {
+    ipcRenderer.removeAllListeners('transcript:toggle')
   }
 }
 
