@@ -23,6 +23,17 @@ export default function App() {
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
   const [recording, setRecording] = useState(false);
   const contentDivRef = useRef<HTMLDivElement | null>(null);
+  
+  // Mention functionality state
+  const [showMentions, setShowMentions] = useState(false);
+  const [inputValue, setInputValue] = useState("");
+  
+  // Available mentions
+  const availableMentions = [
+    { id: 'cua', label: '@cua', description: 'CUA Assistant' },
+    { id: 'notes', label: '@notes', description: 'Meeting Notes' }
+
+  ];
 
   // Load chat history on mount
   useEffect(() => {
@@ -40,6 +51,49 @@ export default function App() {
 
     loadHistory();
   }, []);
+
+  // Handle mention detection
+  const handleInputChange = (value: string) => {
+    setInputValue(value);
+    
+    // Detect @ mentions
+    const cursorPosition = promptInputRef.current?.selectionStart || 0;
+    const textBeforeCursor = value.substring(0, cursorPosition);
+    const mentionMatch = textBeforeCursor.match(/@(\w*)$/);
+    
+    if (mentionMatch) {
+      setShowMentions(true);
+    } else {
+      setShowMentions(false);
+    }
+  };
+
+  // Insert mention into input
+  const insertMention = (mention: { id: string; label: string }) => {
+    const input = promptInputRef.current;
+    if (!input) return;
+    
+    const value = input.value;
+    const cursorPosition = input.selectionStart || 0;
+    const textBeforeCursor = value.substring(0, cursorPosition);
+    const textAfterCursor = value.substring(cursorPosition);
+    
+    // Find the @ symbol position
+    const mentionStartIndex = textBeforeCursor.lastIndexOf('@');
+    const newValue = 
+      value.substring(0, mentionStartIndex) + 
+      mention.label + ' ' + 
+      textAfterCursor;
+    
+    input.value = newValue;
+    setInputValue(newValue);
+    setShowMentions(false);
+    
+    // Set cursor position after the mention
+    const newCursorPosition = mentionStartIndex + mention.label.length + 1;
+    input.focus();
+    input.setSelectionRange(newCursorPosition, newCursorPosition);
+  };
 
   // Auto-scroll to bottom when new messages are added
   useEffect(() => {
@@ -96,10 +150,11 @@ export default function App() {
         console.log('Transcript data:', data) // Debug log
         if (promptInputRef.current && data.text) {
           promptInputRef.current.value = data.text
-
+          setInputValue(data.text)
           promptInputRef.current.focus()
           sendPrompt(data.text)
           promptInputRef.current.value = ''
+          setInputValue('')
         }
       } else {
         console.error('Failed to get transcript:', response.status)
@@ -223,20 +278,94 @@ export default function App() {
             <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-white/5 text-[#7cc3ff] text-sm font-bold">
               <img src={icon} alt="" />
             </span>
-            <input
-              ref={promptInputRef}
-              autoFocus
-              placeholder={recording ? "Listening..." : "Ask me anything!"}
-              className="flex-1 bg-transparent outline-none text-sm placeholder-gray-400"
-              disabled={isStreaming}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  const prompt = event.currentTarget.value;
-                  if (promptInputRef.current) promptInputRef.current.value = "";
-                  sendPrompt(prompt);
-                }
-              }}
-            />
+            <div className="flex-1 relative">
+              {/* Actual input with mixed coloring */}
+              <div className="relative w-full">
+                {/* Background highlight layer for @cua only */}
+                <div className="absolute inset-0 w-full h-full text-sm pointer-events-none overflow-hidden z-10 flex items-center">
+                  <div className="whitespace-pre select-none" style={{ fontSize: '14px', fontFamily: 'inherit', lineHeight: '20px' }}>
+                    {inputValue.split(/(@cua|@notes)/).map((part, index) => (
+                      <span key={index}>
+                        {part === '@cua' || part === '@notes' ? (
+                          <span className="bg-blue-500/30 rounded px-1 text-transparent">{part}</span>
+                        ) : (
+                          <span className="text-transparent">{part}</span>
+                        )}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Actual input */}
+                <input
+                  ref={promptInputRef}
+                  autoFocus
+                  value={inputValue}
+                  placeholder={recording ? "Listening..." : "Ask me anything! (Type @cua for CUA assistant)"}
+                  className="w-full bg-transparent outline-none text-sm placeholder-gray-400 relative z-20"
+                  style={{ 
+                    backgroundColor: 'transparent',
+                    color: 'white',
+                    caretColor: '#ffffff'
+                  }}
+                  disabled={isStreaming}
+                  onChange={(e) => handleInputChange(e.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && !showMentions) {
+                      const prompt = event.currentTarget.value;
+                      if (promptInputRef.current) promptInputRef.current.value = "";
+                      setInputValue("");
+                      sendPrompt(prompt);
+                    } else if (event.key === "Escape") {
+                      setShowMentions(false);
+                    } else if (event.key === "Enter" && showMentions) {
+                      event.preventDefault();
+                      insertMention(availableMentions[0]);
+                    }
+                  }}
+                />
+                
+                {/* Text overlay layer for @cua coloring */}
+                <div className="absolute inset-0 w-full h-full text-sm pointer-events-none overflow-hidden z-30 flex items-center">
+                  <div className="whitespace-pre select-none" style={{ fontSize: '14px', fontFamily: 'inherit', lineHeight: '20px' }}>
+                    {inputValue.split(/(@cua)/).map((part, index) => (
+                      <span key={index}>
+                        {part === '@cua' ? (
+                          <span className="text-blue-300 font-medium">@cua</span>
+                        ) : (
+                          <span className="text-transparent">{part}</span>
+                        )}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Mention dropdown */}
+              {showMentions && (
+                <div className="absolute top-full left-0 mt-1 w-48 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50">
+                  {availableMentions
+                    .filter(mention => {
+                      const input = promptInputRef.current?.value || "";
+                      const cursorPosition = promptInputRef.current?.selectionStart || 0;
+                      const textBeforeCursor = input.substring(0, cursorPosition);
+                      const mentionMatch = textBeforeCursor.match(/@(\w*)$/);
+                      const searchTerm = mentionMatch ? mentionMatch[1].toLowerCase() : "";
+                      return mention.id.toLowerCase().includes(searchTerm);
+                    })
+                    .map((mention) => (
+                      <div
+                        key={mention.id}
+                        className="px-3 py-2 hover:bg-gray-700 cursor-pointer first:rounded-t-lg last:rounded-b-lg"
+                        onClick={() => insertMention(mention)}
+                      >
+                        <div className="text-sm font-medium text-blue-400">{mention.label}</div>
+                        <div className="text-xs text-gray-400">{mention.description}</div>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
            { recording ? (
               <Podcast
                 color="#ff6b6b" pointer-events-none size={18} />
@@ -276,6 +405,7 @@ export default function App() {
                   if (promptInputRef.current?.value.trim()) {
                     const prompt = promptInputRef.current.value
                     promptInputRef.current.value = ''
+                    setInputValue('')
                     sendPrompt(prompt)
                   }
                 }}
