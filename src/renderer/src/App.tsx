@@ -185,6 +185,38 @@ export default function App() {
     }
   }
 
+  const getTranscript2 = async () => {
+    try {
+      setRecording(true);
+      const response = await fetch('http://127.0.0.1:8000/callfortext2', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        console.log('Transcript data:', data) // Debug log
+        if (promptInputRef.current && data.text) {
+          promptInputRef.current.value = data.text
+          setInputValue(data.text)
+          promptInputRef.current.focus()
+          sendPrompt(data.text)
+          promptInputRef.current.value = ''
+          setInputValue('')
+        }
+      } else {
+        console.error('Failed to get transcript:', response.status)
+      }
+    } catch (error) {
+      console.error('Error fetching transcript:', error)
+    }finally{
+      setRecording(false);
+    }
+  }
+
+
   // Set up streaming listeners
   useEffect(() => {
     const handleStreamChunk = (chunk: string) => {
