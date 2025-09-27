@@ -135,6 +135,23 @@ export default function App() {
     }
   }, [])
 
+  // Listen for voice recording shortcut
+  useEffect(() => {
+    const handleVoiceRecording = () => {
+      if (!recording && !isStreaming) {
+        getTranscript()
+      }
+    }
+
+    // Set up voice recording listener
+    window.api?.onVoiceRecordingStart?.(handleVoiceRecording)
+
+    // Cleanup listener on unmount
+    return () => {
+      window.api?.removeVoiceRecordingListener?.()
+    }
+  }, [recording, isStreaming])
+
   const getTranscript = async () => {
     try {
       setRecording(true);
