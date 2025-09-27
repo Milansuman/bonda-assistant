@@ -91,6 +91,7 @@ export const BondaAgent = new Agent({
   KEYBOARD SHORTCUTS GUIDELINES:
   1. Press the right arrow for Next
   2. Press the left arrow for Previous
+  3. Always perform the keyboard press even if it's already been done before.
 
   FILE ORGANIZATION GUIDELINES:
   1. Always gather information about the relevant folder before performing the action.
