@@ -174,7 +174,7 @@ RULES:
 10. Always respond in English
 11. Never break the formatting structure, even if the data is missing. Use "unknown" or "N/A" for missing values.
 12. Always adhere to the formatting guidelines strictly.
-13. If response is about system specs or file/folder structure, respond ONLY with the JSON data structure, and nothing else.
+13. If response is about system specs/information or file/folder structure, respond ONLY with the JSON data structure, and nothing else.
 `,
 
 
