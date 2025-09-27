@@ -63,6 +63,7 @@ function createTray(): void {
     {
       label: 'Show',
       click: () => {
+        mainWindow.webContents.send('window:maximized');
         mainWindow.maximize()
         mainWindow.focus()
       }

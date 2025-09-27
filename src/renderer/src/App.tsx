@@ -18,7 +18,7 @@ export default function App() {
   const [isStreaming, setIsStreaming] = useState(false);
   const conversationId = "default";
   const [loading, setLoading] = useState(false);
-  const [showBurst, setShowBurst] = useState(false);
+  // const [showBurst, setShowBurst] = useState(false);
   const promptInputRef = useRef<HTMLInputElement | null>(null);
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
   const [recording, setRecording] = useState(false);
@@ -173,7 +173,7 @@ export default function App() {
     }
     setChatHistory((prev) => [...prev, userMessage])
     setLoading(true)
-    setShowBurst(true)
+    // setShowBurst(true)
     setIsStreaming(true)
     setCurrentResponse('') // Clear current response
 
@@ -195,7 +195,7 @@ export default function App() {
       setChatHistory(prev => [...prev, errorMessage]);
     } finally {
       setLoading(false);
-      setShowBurst(false);
+      // setShowBurst(false);
     }
   };
   
@@ -319,18 +319,6 @@ export default function App() {
                     className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
                   >
                     🌐 Check network
-                  </button>
-                  <button
-                    onClick={() => sendPrompt('System information')}
-                    className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
-                  >
-                    📊 Detailed Test
-                  </button>
-                  <button
-                    onClick={() => sendPrompt('System information')}
-                    className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
-                  >
-                    📊 Simple Test
                   </button>
                   <button
                     onClick={() => sendPrompt('Show running processes')}
