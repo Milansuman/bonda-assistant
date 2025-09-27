@@ -1,9 +1,10 @@
 import { groq } from "./client";
 import { Experimental_Agent as Agent, stepCountIs, tool, CoreMessage} from "ai";
 import { z } from "zod";
-import { exec } from "child_process";
+import { exec, spawn } from "child_process";
 import { promisify } from "util";
 import * as os from "node:os";
+import { createNote, deleteNote, getAllNotes, getNote } from "../tools/notes";
 
 const execAsync = promisify(exec);
 const mainModel = groq("moonshotai/kimi-k2-instruct");
@@ -81,11 +82,15 @@ export const BondaAgent = new Agent({
   5. Do not reveal the inner workings of the tool calls under any circumstances.
   6. For tasks that require google searches, find the installed browser and do the search there.
   7. When the user asks you to let them know when you're done with a task, use the available notification utility to send a desktop notification.
-  8. When you need to run a long running task, but don't need it's output for the next step, run it as a background process and use the available notification utility when the command is done.
+  8. When you need to run a long running task, but don't need it's output for the next step, use the detached option in runCommand and use the available notification utility when the command is done.
   9. Always use shell commands for any mathematical calculation.
   10. The user is not used to technical jargon. Use natural, easy to understand language.
   11. If another language prompt is given, translate to english and understand the prompt and then execute the function back in ENGLISH ONLY and also ONLY REPLY IN ENGLISH
   12. Ensure any command outputs are limited to around 1000 tokens by truncating the output. For example. don't just use ps aux directly, truncate the output to show the processes using up the most memory
+  
+  KEYBOARD SHORTCUTS GUIDELINES:
+  1. Press the right arrow for Next
+  2. Press the left arrow for Previous
 
   FILE ORGANIZATION GUIDELINES:
   1. Always gather information about the relevant folder before performing the action.
@@ -170,7 +175,7 @@ RULES:
 10. Always respond in English
 11. Never break the formatting structure, even if the data is missing. Use "unknown" or "N/A" for missing values.
 12. Always adhere to the formatting guidelines strictly.
-13. If response is about system specs or file/folder structure, respond ONLY with the JSON data structure, and nothing else.
+13. If response is about system specs/information or file/folder structure, respond ONLY with the JSON data structure, and nothing else.
 `,
 
 
@@ -178,20 +183,128 @@ RULES:
     runCommand: tool({
       description: "Tool to execute commands in the terminal",
       inputSchema: z.object({
-        command: z.string()
+        command: z.string(),
+        detached: z.boolean().optional().describe("Whether to run the command in detached mode (background process). Default is false.")
       }),
-      execute: async ({ command }) => {
+      execute: async ({ command, detached = false }) => {
         try {
-          console.log(`Executing command: ${command}`);
-          const { stdout, stderr } = await execAsync(command);
-          console.log(stdout);
-          return { success: true, stdout, stderr };
+          console.log(`Executing command: ${command}${detached ? ' (detached)' : ''}`);
+          
+          if (detached) {
+            // Use spawn for detached processes
+            const args = command.split(' ');
+            const cmd = args.shift()!;
+            
+            const child = spawn(cmd, args, {
+              detached: true,
+              stdio: 'ignore'
+            });
+            
+            // Unreference the child process so the parent can exit
+            child.unref();
+            
+            return { 
+              success: true, 
+              pid: child.pid,
+              message: `Command started in background with PID: ${child.pid}`,
+              detached: true
+            };
+          } else {
+            // Use exec for regular processes that we wait for
+            const { stdout, stderr } = await execAsync(command);
+            console.log(stdout);
+            return { success: true, stdout, stderr, detached: false };
+          }
         } catch (error) {
           console.error(`Command execution failed: ${error}`);
           return {
             success: false,
-            error: error instanceof Error ? error.message : String(error)
+            error: error instanceof Error ? error.message : String(error),
+            detached: detached
           };
+        }
+      }
+    }),
+    fetch: tool({
+      description: "Tool to send an http request to an endpoint",
+      inputSchema: z.object({
+        endpoint: z.string(),
+        method: z.enum(["GET", "POST", "PUT", "DELETE"]),
+        body: z.string().optional()
+      }),
+      execute: async ({endpoint, method, body}) => {
+        try {
+          const response = await fetch(endpoint, {
+            method: method,
+            body
+          });
+
+          if(!response.ok){
+            return {
+              success: false,
+              response: await response.text(),
+              status: response.status
+            }
+          }
+
+          return {
+            success: true,
+            response: await response.text(),
+            status: response.status
+          }
+        } catch (error) {
+          return {
+            success: false,
+            error: error
+          }
+        }
+      }
+    }),
+    notes: tool({
+      description: "Tool to manage notes",
+      inputSchema: z.object({
+        action: z.enum(["CREATE", "GET", "GETALL", "DELETE"]),
+        name: z.string(),
+        content: z.string()
+      }),
+      execute: async ({action, name, content}) => {
+        try {
+          switch (action) {
+            case "CREATE":
+              await createNote(name, content);
+              return {
+                success: true,
+                message: "Note created successfully"
+              };
+            case "GET":
+              const note = await getNote(name);
+              return {
+                success: true,
+                message: note
+              };
+            case "GETALL":
+              const notes = await getAllNotes();
+              return {
+                success: true,
+                message: notes
+              };
+            case "DELETE":
+              await deleteNote(name);
+              return {
+                success: true,
+                message: "Note deleted successfully"
+              };
+            default:
+              return {
+                success: false,
+                message: "Invalid action"
+              };
+          }
+        } catch (error) {
+          return {
+            success: false,
+            error: error
+          }
         }
       }
     })
@@ -276,15 +389,11 @@ export async function processStreamMessage(message: string, conversationId: stri
     const abortableStream = {
       textStream: async function* () {
         try {
-          for await (const chunk of result.fullStream) {
+          for await (const chunk of result.textStream) {
             if (abortController.signal.aborted) {
               throw new DOMException('Stream aborted', 'AbortError');
             }
-            if(chunk.type === "text-delta"){
-              yield chunk.text;
-            }else{
-              console.log(chunk);
-            }
+            yield chunk;
           }
         } catch (error) {
           if (abortController.signal.aborted) {

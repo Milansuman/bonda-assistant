@@ -1,7 +1,7 @@
 import { app, shell, BrowserWindow, ipcMain, Tray, Menu, globalShortcut } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import icon from '../../resources/icon.png?asset'
+import icon from '../../build/icon.png?asset'
 import { initializeBondaIPC } from './lib/ai/ipc'
 import "./lib/whatsapp";
 
@@ -17,7 +17,7 @@ function createWindow(): void {
     autoHideMenuBar: true,
     titleBarStyle: 'hidden',
     transparent: true,
-    ...(process.platform === 'linux' ? { icon } : {}),
+    icon: icon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false
@@ -63,6 +63,7 @@ function createTray(): void {
     {
       label: 'Show',
       click: () => {
+        mainWindow.webContents.send('window:maximized');
         mainWindow.maximize()
         mainWindow.focus()
       }
@@ -104,6 +105,11 @@ function createTray(): void {
 app.whenReady().then(() => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
+  
+  // Set app icon for dock/taskbar on macOS and Linux
+  if (process.platform === 'darwin' || process.platform === 'linux') {
+    app.dock?.setIcon?.(icon) // macOS dock icon
+  }
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
