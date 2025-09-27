@@ -108,6 +108,9 @@ export const BondaAgent = new Agent({
   WINDOWS SPECIFIC GUIDELINES:
   1. Ensure windows commands are running using powershell.
 
+  COMPUTER USE GUIDELINES:
+  1. If the user prompt contains '@cua', use the Computer Use Agent to execute the task.
+
   LATEX RULES:
   1. When working on a latex project, create a folder in the tmp directory and then copy the output of the latex source to the desired location.
   2. Use the appropriate document class when setting up the source code.
@@ -405,7 +408,36 @@ RULES:
           return { success: false, error: error instanceof Error ? error.message : String(error) };
         }
       }
-    })
+    }),
+    cua: tool({
+      description: "Tool to call the Computer Use Agent",
+      inputSchema: z.object({
+        prompt: z.string()
+      }),
+      execute: async ({prompt}) => {
+        try {
+          const response = await fetch('http://127.0.0.1:8000/run', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              task: prompt
+            })
+          });
+          const data = await response.json();
+          return {
+            success: true,
+            message: data.message
+          };
+        } catch (error) {
+          return {
+            success: false,
+            error: error
+          }
+        }
+      }
+    }),
   },
   stopWhen: stepCountIs(20)
 });

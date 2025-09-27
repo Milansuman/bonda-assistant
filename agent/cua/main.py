@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage
 from langchain_core.output_parsers import JsonOutputParser
+from fastapi.middleware.cors import CORSMiddleware
 from tools import invoke_tool, TOOLS
 from instructions import MAIN_PROMPT
 
@@ -13,7 +14,22 @@ load_dotenv()
 class RunRequest(BaseModel):
     task: str
 
+origins = [
+    "http://localhost:3000",   
+    "http://127.0.0.1:3000", 
+    "http://localhost:5173" 
+]
+
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*'],  
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 @app.get("/")
 def root():
@@ -22,9 +38,9 @@ def root():
 @app.post("/run")
 def run(request: RunRequest):
     main_model = ChatOpenAI(
-        model="gpt-4.1",
-        # reasoning={"effort": "low"},
-        temperature=0.5,
+        model="gpt-5",
+        reasoning={"effort": "minimal"},
+        # temperature=0.5,
         api_key=os.environ["OPENAI_API_KEY"],
     ).bind_tools(TOOLS, parallel_tool_calls=False)
     
