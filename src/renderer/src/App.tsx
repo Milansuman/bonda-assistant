@@ -2,6 +2,7 @@
 import { Mic, Play, StopCircle, PlusCircle, Podcast } from 'lucide-react'
 import { useRef, useState, useEffect } from 'react'
 import { MessageRenderer } from "./components/MessageRenderer";
+import audioFile from './assets/damn_good_audio.mp3';
 
 interface ChatMessage {
   id: string
@@ -59,6 +60,24 @@ export default function App() {
     document.addEventListener('mousedown', handleClickOutside)
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
+  // Play audio when window is maximized
+  useEffect(() => {
+    const playAudio = () => {
+      const audio = new Audio(audioFile)
+      audio.play().catch(error => {
+        console.log('Failed to play audio:', error)
+      })
+    }
+
+    // Set up window maximize listener
+    window.api?.onWindowMaximized?.(playAudio)
+
+    // Cleanup listener on unmount
+    return () => {
+      window.api?.removeWindowMaximizedListener?.()
     }
   }, [])
 
@@ -206,6 +225,7 @@ export default function App() {
             </span>
             <input
               ref={promptInputRef}
+              autoFocus
               placeholder={recording ? "Listening..." : "Ask me anything!"}
               className="flex-1 bg-transparent outline-none text-sm placeholder-gray-400"
               disabled={isStreaming}

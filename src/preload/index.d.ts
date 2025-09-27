@@ -22,6 +22,8 @@ interface BondaAPI {
 interface API {
   bonda: BondaAPI
   hideWindow: () => Promise<void>
+  onWindowMaximized: (callback: () => void) => void
+  removeWindowMaximizedListener: () => void
 }
 
 declare global {
