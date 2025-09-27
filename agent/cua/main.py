@@ -4,10 +4,10 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from pydantic import BaseModel
 from langchain_openai import ChatOpenAI
-from instructions import SYSTEM_PROMPT
-from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage
 from langchain_core.output_parsers import JsonOutputParser
-from tools import invoke_tool
+from tools import invoke_tool, TOOLS
+from instructions import MAIN_PROMPT
 
 load_dotenv()
 
@@ -22,19 +22,23 @@ def root():
 
 @app.post("/run")
 def run(request: RunRequest):
-    parser = JsonOutputParser()
-
-    model = ChatOpenAI(
-        model="qwen/qwen2.5-vl-72b-instruct",
+    main_model = ChatOpenAI(
+        # model="qwen/qwen2.5-vl-72b-instruct",
         # model="bytedance/ui-tars-1.5-7b",
-        api_key=os.environ["OPENROUTER_API_KEY"],
-        base_url="https://openrouter.ai/api/v1",
-        extra_body={
-            "provider": {"only": ["hyperbolic"]}
-        }
-    )
+        # model="z-ai/glm-4.5v",
+        model="gpt-4.1",
+        api_key=os.environ["OPENAI_API_KEY"],
+        # api_key=os.environ["OPENROUTER_API_KEY"],
+        # base_url="https://openrouter.ai/api/v1",
+        # extra_body={
+            # "provider": {"only": ["hyperbolic"]}
+        # }
+        # extra_body={
+        #     "provider": {"only": ["z-ai"]}
+        # }
+    ).bind_tools(TOOLS, parallel_tool_calls=False)
     
-    messages = [SystemMessage(content=SYSTEM_PROMPT)]
+    messages = [SystemMessage(content=MAIN_PROMPT)]
     messages.append(HumanMessage(
         content=[
             {
@@ -46,28 +50,40 @@ def run(request: RunRequest):
     
     finish = False
     function_exec_state = False
-    try:
-        while (not finish or function_exec_state):
-            response = model.invoke(messages)
-            llm_result = parser.invoke(response)
-            print("Tool: ", llm_result)
-            function_exec_state = False
-            if (not llm_result):
-                break
-            if (llm_result["name"] == "finish" or llm_result["name"] == "error"):
-                finish = True
-            else:
+    screen_index = None
+    # try:
+    while (not finish or function_exec_state):
+        response = main_model.invoke(messages)
+        print("Response: ", response)
+        messages.append(response)
+        function_exec_state = False
+        if (not response.tool_calls):
+            finish = True
+        else:
+            for tool_call in response.tool_calls:
                 function_exec_state = True
-                messages.append(AIMessage(
-                    content=[
-                        {
-                            "type": "text",
-                            "text": json.dumps(llm_result)
-                        }
-                    ]
+                tool_result = invoke_tool({
+                    "name": tool_call["name"],
+                    "arguments": tool_call["args"]
+                })
+                messages.append(ToolMessage(
+                    content=tool_result["text"],
+                    name=tool_call["name"],
+                    tool_call_id=tool_call["id"]
                 ))
-                tool_result = invoke_tool(llm_result)
-                if (tool_result):
-                    messages.append(HumanMessage(content=[tool_result]))
-    except Exception as e:
-        return {"error": str(e)}
+                if (tool_result["type"] == "screen"):
+                    if (screen_index):
+                        messages.pop(screen_index)
+                    screen_index = len(messages)
+                    messages.append(HumanMessage(
+                        content=[
+                            {
+                                "type": "image",
+                                "source_type": "base64",
+                                "mime_type": "image/jpeg",
+                                "data": tool_result["data"]
+                            }
+                        ]
+                    ))
+    # except Exception as e:
+    #     return {"error": str(e)}

@@ -11,4 +11,5 @@ dependencies = [
     "pyautogui>=0.9.54",
     "python-dotenv>=1.1.1",
     "uvicorn>=0.37.0",
+    "pillow>=11.3.0",
 ]
