@@ -276,15 +276,11 @@ export async function processStreamMessage(message: string, conversationId: stri
     const abortableStream = {
       textStream: async function* () {
         try {
-          for await (const chunk of result.fullStream) {
+          for await (const chunk of result.textStream) {
             if (abortController.signal.aborted) {
               throw new DOMException('Stream aborted', 'AbortError');
             }
-            if(chunk.type === "text-delta"){
-              yield chunk.text;
-            }else{
-              console.log(chunk);
-            }
+            yield chunk;
           }
         } catch (error) {
           if (abortController.signal.aborted) {
