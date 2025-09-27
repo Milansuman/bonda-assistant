@@ -32,6 +32,12 @@
 - **Hot Reload**: Development environment with instant updates
 - **Type Safety**: Full TypeScript support across the entire application
 
+### Computer Use
+- **Multi-Model Architecture**: Integration of sophisticated visual and visual grounding models for enhanced perception
+- **Computer Vision Control**: Advanced vision-based system for automated desktop interaction and control
+- **Human-Like Interaction**: Emulates natural human behavior for intuitive desktop navigation and manipulation
+- **Intelligent Visual Processing**: Combines multiple vision models for comprehensive desktop environment understanding
+
 ## 🛠️ Technology Stack
 
 ### Frontend
@@ -60,6 +66,8 @@
 - **Python** 3.11+
 - **uv** (Python package manager)
 - **Groq API Key** - Get yours at [groq.com](https://groq.com)
+- **OpenAI API Key** - Get yours at [openai.com](https://openai.com)
+- **Openrouter API Key** - Get yours at [openrouter.ai](https://openrouter.ai)
 
 ## ⚡ Quick Start
 
@@ -78,6 +86,8 @@ Create a `.env` file in the project root:
 ```env
 GROQ_API_KEY=your_groq_api_key_here
 VITE_GROQ_API_KEY=your_groq_api_key_here
+OPENAI_API_KEY=your_openai_api_key_here
+OPENROUTER_API_KEY=your_openrouter_api_key_here
 ```
 
 ### 3. Python Environment (Optional)
