@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from 'react'
 import { MessageRenderer } from "./components/MessageRenderer";
 import audioFile from './assets/damn_good_audio.mp3';
 import icon from "./assets/icon.ico";
+import { set } from 'zod';
 interface ChatMessage {
   id: string
   role: 'user' | 'assistant'
@@ -139,6 +140,7 @@ export default function App() {
   useEffect(() => {
     const handleVoiceRecording = () => {
       if (!recording && !isStreaming) {
+        setRecording(true);
         getTranscript()
       }
     }
@@ -286,7 +288,7 @@ export default function App() {
 
   return (
     <>
-      {loading && <div className="bonda-overlay w-screen h-screen"></div>}
+      {(loading || recording) && <div className="bonda-overlay w-screen h-screen"></div>}
       {/* {showBurst && <div className="bonda-overlay-burst"></div>} */}
 
       <div className="w-screen h-screen flex items-center justify-center bg-transparent">
