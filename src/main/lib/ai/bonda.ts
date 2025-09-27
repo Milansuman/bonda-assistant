@@ -4,6 +4,7 @@ import { z } from "zod";
 import { exec, spawn } from "child_process";
 import { promisify } from "util";
 import * as os from "node:os";
+import { createNote, deleteNote, getAllNotes, getNote } from "../tools/notes";
 
 const execAsync = promisify(exec);
 const mainModel = groq("moonshotai/kimi-k2-instruct");
@@ -250,6 +251,54 @@ RULES:
             success: true,
             response: await response.text(),
             status: response.status
+          }
+        } catch (error) {
+          return {
+            success: false,
+            error: error
+          }
+        }
+      }
+    }),
+    notes: tool({
+      description: "Tool to manage notes",
+      inputSchema: z.object({
+        action: z.enum(["CREATE", "GET", "GETALL", "DELETE"]),
+        name: z.string(),
+        content: z.string()
+      }),
+      execute: async ({action, name, content}) => {
+        try {
+          switch (action) {
+            case "CREATE":
+              await createNote(name, content);
+              return {
+                success: true,
+                message: "Note created successfully"
+              };
+            case "GET":
+              const note = await getNote(name);
+              return {
+                success: true,
+                message: note
+              };
+            case "GETALL":
+              const notes = await getAllNotes();
+              return {
+                success: true,
+                message: notes
+              };
+            case "DELETE":
+              await deleteNote(name);
+              return {
+                success: true,
+                message: "Note deleted successfully"
+              };
+            default:
+              return {
+                success: false,
+                message: "Invalid action"
+              };
           }
         } catch (error) {
           return {
