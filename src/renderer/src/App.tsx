@@ -1,5 +1,5 @@
 
-import { Mic, Play, StopCircle, PlusCircle, Podcast } from 'lucide-react'
+import { Mic, Play, CircleX, PlusCircle, Podcast } from 'lucide-react'
 import { useRef, useState, useEffect } from 'react'
 import { MessageRenderer } from "./components/MessageRenderer";
 import audioFile from './assets/damn_good_audio.mp3';
@@ -214,7 +214,7 @@ export default function App() {
 
   return (
     <>
-      {loading && <div className="bonda-overlay"></div>}
+      {loading && <div className="bonda-overlay w-screen h-screen"></div>}
       {/* {showBurst && <div className="bonda-overlay-burst"></div>} */}
 
       <div className="w-screen h-screen flex items-center justify-center bg-transparent">
@@ -257,7 +257,7 @@ export default function App() {
               />
             </div>
             {isStreaming ? (
-              <StopCircle
+              <CircleX
                 color="#ff6b6b"
                 size={18}
                 className="cursor-pointer hover:text-white"
@@ -319,6 +319,18 @@ export default function App() {
                     className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
                   >
                     🌐 Check network
+                  </button>
+                  <button
+                    onClick={() => sendPrompt('System information')}
+                    className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
+                  >
+                    📊 Detailed Test
+                  </button>
+                  <button
+                    onClick={() => sendPrompt('System information')}
+                    className="flex-shrink-0 p-2 bg-transparent hover:bg-white/5 rounded-lg border border-white/5 text-left text-xs text-gray-300 transition-colors whitespace-nowrap"
+                  >
+                    📊 Simple Test
                   </button>
                   <button
                     onClick={() => sendPrompt('Show running processes')}
