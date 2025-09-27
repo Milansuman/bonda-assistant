@@ -4,7 +4,6 @@ import { useRef, useState, useEffect } from 'react'
 import { MessageRenderer } from "./components/MessageRenderer";
 import audioFile from './assets/damn_good_audio.mp3';
 import icon from "./assets/icon.ico";
-import { set } from 'zod';
 interface ChatMessage {
   id: string
   role: 'user' | 'assistant'
@@ -185,7 +184,7 @@ export default function App() {
   const getTranscript = async () => {
     try {
       setRecording(true);
-      const response = await fetch('http://127.0.0.1:8000/callfortext', {
+      const response = await fetch('http://10.3.4.79:8000/callfortext', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
@@ -197,7 +196,7 @@ export default function App() {
         console.log('Transcript data:', data) // Debug log
         if (data.text) {
           // Check if it's a navigation command first
-          if ((data.text as string).toLowerCase() === "next" || (data.text as string).toLowerCase() === "previous") {
+          if ((data.text as string).toLowerCase() === "next." || (data.text as string).toLowerCase() === "previous.") {
             const navResult = await window.api.navigation.executeCommand(data.text);
             if (navResult.success) {
               console.log('Navigation command executed:', navResult.message);
@@ -229,7 +228,7 @@ export default function App() {
   const getTranscript2 = async () => {
     try {
       setRecording(true);
-      const response = await fetch('http://127.0.0.1:8000/callfortext2', {
+      const response = await fetch('http://10.3.4.79:8000/callfortext2', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
@@ -241,7 +240,7 @@ export default function App() {
         console.log('Transcript data:', data) // Debug log
         if (data.text) {
           // Check if it's a navigation command first
-          if ((data.text as string).toLowerCase() === "next" || (data.text as string).toLowerCase() === "previous") {
+          if ((data.text as string).toLowerCase() === "next." || (data.text as string).toLowerCase() === "previous.") {
             const navResult = await window.api.navigation.executeCommand(data.text);
             if (navResult.success) {
               console.log('Navigation command executed:', navResult.message);
