@@ -288,7 +288,7 @@ export default function App() {
 
   return (
     <>
-      {(loading || recording) && <div className="bonda-overlay w-screen h-screen"></div>}
+      {<div className="bonda-overlay w-screen h-screen"></div>}
       {/* {showBurst && <div className="bonda-overlay-burst"></div>} */}
 
       <div className="w-screen h-screen flex items-center justify-center bg-transparent">
@@ -320,7 +320,7 @@ export default function App() {
                   ref={promptInputRef}
                   autoFocus
                   value={inputValue}
-                  placeholder={recording ? "Listening..." : "Ask me anything! (Type @cua for CUA assistant)"}
+                  placeholder={recording ? "Listening..." : "Ask me anything!"}
                   className="w-full bg-transparent outline-none text-sm placeholder-gray-400 relative z-20"
                   style={{ 
                     backgroundColor: 'transparent',
