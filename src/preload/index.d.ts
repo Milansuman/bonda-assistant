@@ -19,13 +19,20 @@ interface BondaAPI {
   abortConversation: (conversationId?: string) => Promise<{ success: boolean; error?: string }>
 }
 
+interface NavigationAPI {
+  executeCommand: (message: string) => Promise<{ success: boolean; message: string }>
+}
+
 interface API {
   bonda: BondaAPI
+  navigation: NavigationAPI
   hideWindow: () => Promise<void>
   onWindowMaximized: (callback: () => void) => void
   removeWindowMaximizedListener: () => void
   onVoiceRecordingStart: (callback: () => void) => void
   removeVoiceRecordingListener: () => void
+  onTranscriptToggle: (callback: () => void) => void
+  removeTranscriptToggleListener: () => void
 }
 
 declare global {

@@ -87,10 +87,12 @@ export const BondaAgent = new Agent({
   10. The user is not used to technical jargon. Use natural, easy to understand language.
   11. If another language prompt is given, translate to english and understand the prompt and then execute the function back in ENGLISH ONLY and also ONLY REPLY IN ENGLISH
   12. Ensure any command outputs are limited to around 1000 tokens by truncating the output. For example. don't just use ps aux directly, truncate the output to show the processes using up the most memory
+  13. <IMPORTANT>Use the keypress tool any time you need to perform a keypress. Always perform the keypress even if the same keypress has been performed before</IMPORTANT>
   
   KEYBOARD SHORTCUTS GUIDELINES:
   1. Press the right arrow for Next
   2. Press the left arrow for Previous
+  3. Always perform the keyboard press even if it's already been done before.
 
   FILE ORGANIZATION GUIDELINES:
   1. Always gather information about the relevant folder before performing the action.
@@ -103,7 +105,6 @@ export const BondaAgent = new Agent({
   3. For commands that are likely to ask for prompts(yes/no questions), use the yes utility
   4. For commands that require sudo access, use pkexec to ask for sudo access.
   <IMPORTANT>Never run a command with sudo directly.</IMPORTANT>
-  5. When you need perform a keypress, use xdotool to perform the keybinding.
 
   WINDOWS SPECIFIC GUIDELINES:
   1. Ensure windows commands are running using powershell.
@@ -404,6 +405,20 @@ RULES:
         try {
           const { stdout } = await execAsync("ufw status verbose 2>/dev/null || iptables -L -n | head -20");
           return { success: true, output: stdout };
+        } catch (error) {
+          return { success: false, error: error instanceof Error ? error.message : String(error) };
+        }
+      }
+    }),
+    keyPress: tool({
+      description: "Perform a key press using xdotool",
+      inputSchema: z.object({
+        key: z.string().describe("The key or key combination to press (e.g., 'Return', 'space', 'ctrl+c', 'alt+Tab')")
+      }),
+      execute: async ({ key }) => {
+        try {
+          const { stdout, stderr } = await execAsync(`xdotool key ${key}`);
+          return { success: true, stdout, stderr };
         } catch (error) {
           return { success: false, error: error instanceof Error ? error.message : String(error) };
         }

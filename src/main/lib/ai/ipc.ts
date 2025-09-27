@@ -1,5 +1,9 @@
 import { ipcMain } from "electron";
 import { processMessage, processStreamMessage, addAssistantMessageToHistory, getChatHistory, clearChatHistory, abortConversation, ChatMessage } from "./bonda";
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 // IPC channel names
 export const IPC_CHANNELS = {
@@ -13,7 +17,46 @@ export const IPC_CHANNELS = {
   BONDA_GET_HISTORY: 'bonda:getHistory',
   BONDA_CLEAR_HISTORY: 'bonda:clearHistory',
   BONDA_ABORT: 'bonda:abort',
+  NAVIGATION_COMMAND: 'navigation:command',
 } as const;
+
+// Function to check if message contains next/previous variations
+function isNavigationCommand(message: string): { isNavigation: boolean; command?: 'next' | 'previous' } {
+  const lowerMessage = message.toLowerCase().trim();
+  
+  // Check for "next" variations
+  const nextPatterns = ['next', 'nxt', 'forward', 'ahead', 'continue', 'proceed'];
+  if (nextPatterns.some(pattern => lowerMessage.includes(pattern))) {
+    return { isNavigation: true, command: 'next' };
+  }
+  
+  // Check for "previous" variations
+  const previousPatterns = ['previous', 'prev', 'back', 'backward', 'before', 'earlier'];
+  if (previousPatterns.some(pattern => lowerMessage.includes(pattern))) {
+    return { isNavigation: true, command: 'previous' };
+  }
+  
+  return { isNavigation: false };
+}
+
+// Function to execute navigation command
+async function executeNavigationCommand(command: 'next' | 'previous'): Promise<{ success: boolean; message: string }> {
+  try {
+    let xdotoolCommand: string;
+    
+    if (command === 'next') {
+      xdotoolCommand = 'xdotool key Right';
+    } else {
+      xdotoolCommand = 'xdotool key Left';
+    }
+    
+    await execAsync(xdotoolCommand);
+    return { success: true, message: `✅ Executed ${command} command` };
+  } catch (error) {
+    console.error(`Error executing ${command} command:`, error);
+    return { success: false, message: `❌ Failed to execute ${command} command` };
+  }
+}
 
 /**
  * Initialize IPC handlers for Bonda AI agent
@@ -110,6 +153,24 @@ export function initializeBondaIPC(): void {
       console.error('Error aborting conversation:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
       return { success: false, error: errorMessage };
+    }
+  });
+
+  // Handle navigation commands
+  ipcMain.handle(IPC_CHANNELS.NAVIGATION_COMMAND, async (_event, message: string) => {
+    try {
+      const navigationCheck = isNavigationCommand(message);
+      
+      if (navigationCheck.isNavigation && navigationCheck.command) {
+        const result = await executeNavigationCommand(navigationCheck.command);
+        return result;
+      } else {
+        return { success: false, message: 'Not a navigation command' };
+      }
+    } catch (error) {
+      console.error('Error processing navigation command:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return { success: false, message: errorMessage };
     }
   });
 }
