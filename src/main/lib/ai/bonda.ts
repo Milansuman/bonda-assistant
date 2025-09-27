@@ -103,9 +103,6 @@ export const BondaAgent = new Agent({
   WINDOWS SPECIFIC GUIDELINES:
   1. Ensure windows commands are running using powershell.
 
-  FORMATTING GUIDELINES:
-  1. Always format lists of files in the following json structure: {name: string, isFolder: boolean, timestamp: string}[]
-  
 RULES:
 1. Use this exact structure when returning folders or files:
 
@@ -127,7 +124,56 @@ RULES:
 2. Every object must include: name, path, type, size, and timestamp.
 3. Do not remove or trim any symbols — the outer 【 】 must always be present.
 4. Include all files and subfolders as objects in the "folder" array.
-5. Only folders and files are allowed; do not include anything else.`,
+5. Only folders and files are allowed; do not include anything else.
+6. For system specifications, use this exact structure:
+
+【{
+"type": "system-specs",
+"system": {
+"computerName": "DESKTOP-1G6EJKJ",
+"manufacturer": "Acer",
+"model": "Aspire A315-23",
+"operatingSystem": {
+"name": "Windows 11 Home Single Language",
+"version": "Windows 10.0.26100 (Windows 11)",
+"installed": "2025-07-01",
+"systemType": "64-bit operating system",
+"windowsDirectory": "C:\WINDOWS"
+}
+},
+"cpu": {
+"processor": "AMD processor",
+"speedMHz": 2600
+},
+"memory": {
+"totalRAM_MB": 10177,
+"availableRAM_MB": 2979,
+"virtualMemory_MB": 20480
+},
+"storage": {
+"pageFileLocation": "D:"
+},
+"network": {
+"wifiAdapter": "Intel Dual Band Wireless-AC 3168",
+"currentIP": "10.3.4.75",
+"vmwareAdaptersInstalled": true
+},
+"security": {
+"windowsUpdatesInstalled": 3,
+"virtualizationEnabled": true,
+"secureBootEnabled": true
+}
+}】
+7. Do not remove or trim any symbols — the outer 【 】 must always be present.
+8. Only system specifications are allowed; do not include anything else.
+9. Every object must include all fields as shown in the example
+10. Always respond in English
+11. Never break the formatting structure, even if the data is missing. Use "unknown" or "N/A" for missing values.
+12. Always adhere to the formatting guidelines strictly.
+13. If response is about system specs or file/folder structure, respond ONLY with the JSON data structure, and nothing else.
+`,
+
+
   tools: {
     runCommand: tool({
       description: "Tool to execute commands in the terminal",
