@@ -25,13 +25,13 @@ function isNavigationCommand(message: string): { isNavigation: boolean; command?
   const lowerMessage = message.toLowerCase().trim();
   
   // Check for "next" variations
-  const nextPatterns = ['next', 'nxt', 'forward', 'ahead', 'continue', 'proceed'];
+  const nextPatterns = ['next', 'nxt', 'forward', 'ahead', 'continue', 'proceed', 'next.'];
   if (nextPatterns.some(pattern => lowerMessage.includes(pattern))) {
     return { isNavigation: true, command: 'next' };
   }
   
   // Check for "previous" variations
-  const previousPatterns = ['previous', 'prev', 'back', 'backward', 'before', 'earlier'];
+  const previousPatterns = ['previous', 'prev', 'back', 'backward', 'before', 'earlier', 'previous.'];
   if (previousPatterns.some(pattern => lowerMessage.includes(pattern))) {
     return { isNavigation: true, command: 'previous' };
   }
@@ -49,6 +49,8 @@ async function executeNavigationCommand(command: 'next' | 'previous'): Promise<{
     } else {
       xdotoolCommand = 'xdotool key Left';
     }
+
+    console.log(xdotoolCommand);
     
     await execAsync(xdotoolCommand);
     return { success: true, message: `✅ Executed ${command} command` };
@@ -160,6 +162,8 @@ export function initializeBondaIPC(): void {
   ipcMain.handle(IPC_CHANNELS.NAVIGATION_COMMAND, async (_event, message: string) => {
     try {
       const navigationCheck = isNavigationCommand(message);
+
+      console.log(navigationCheck);
       
       if (navigationCheck.isNavigation && navigationCheck.command) {
         const result = await executeNavigationCommand(navigationCheck.command);
