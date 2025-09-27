@@ -313,6 +313,98 @@ RULES:
           }
         }
       }
+    }),
+    checkPorts: tool({
+      description: "Check for open ports and listening services",
+      inputSchema: z.object({
+        port: z.number().optional()
+      }),
+      execute: async ({ port }) => {
+        try {
+          const command = port ? `ss -tuln | grep :${port}` : `ss -tuln | head -20`;
+          const { stdout } = await execAsync(command);
+          return { success: true, output: stdout };
+        } catch (error) {
+          return { success: false, error: error instanceof Error ? error.message : String(error) };
+        }
+      }
+    }),
+    checkProcesses: tool({
+      description: "Check running processes for security analysis",
+      inputSchema: z.object({
+        filter: z.string().optional()
+      }),
+      execute: async ({ filter }) => {
+        try {
+          const command = filter ? 
+            `ps aux | grep -i ${filter} | head -10` : 
+            `ps aux --sort=-%cpu | head -15`;
+          const { stdout } = await execAsync(command);
+          return { success: true, output: stdout };
+        } catch (error) {
+          return { success: false, error: error instanceof Error ? error.message : String(error) };
+        }
+      }
+    }),
+    checkConnections: tool({
+      description: "Check active network connections",
+      inputSchema: z.object({
+        type: z.enum(["all", "established", "listening"]).optional()
+      }),
+      execute: async ({ type = "all" }) => {
+        try {
+          let command = "ss -tuln";
+          if (type === "established") command = "ss -tun state established";
+          if (type === "listening") command = "ss -tln";
+          command += " | head -20";
+          
+          const { stdout } = await execAsync(command);
+          return { success: true, output: stdout };
+        } catch (error) {
+          return { success: false, error: error instanceof Error ? error.message : String(error) };
+        }
+      }
+    }),
+    checkUsers: tool({
+      description: "Check logged in users and login history",
+      inputSchema: z.object({
+        type: z.enum(["current", "history"]).optional()
+      }),
+      execute: async ({ type = "current" }) => {
+        try {
+          const command = type === "history" ? "last -10" : "who";
+          const { stdout } = await execAsync(command);
+          return { success: true, output: stdout };
+        } catch (error) {
+          return { success: false, error: error instanceof Error ? error.message : String(error) };
+        }
+      }
+    }),
+    checkPermissions: tool({
+      description: "Check file or directory permissions",
+      inputSchema: z.object({
+        path: z.string()
+      }),
+      execute: async ({ path }) => {
+        try {
+          const { stdout } = await execAsync(`ls -la "${path}"`);
+          return { success: true, output: stdout };
+        } catch (error) {
+          return { success: false, error: error instanceof Error ? error.message : String(error) };
+        }
+      }
+    }),
+    checkFirewall: tool({
+      description: "Check firewall status and rules",
+      inputSchema: z.object({}),
+      execute: async () => {
+        try {
+          const { stdout } = await execAsync("ufw status verbose 2>/dev/null || iptables -L -n | head -20");
+          return { success: true, output: stdout };
+        } catch (error) {
+          return { success: false, error: error instanceof Error ? error.message : String(error) };
+        }
+      }
     })
   },
   stopWhen: stepCountIs(20)
